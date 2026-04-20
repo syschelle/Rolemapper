@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+.venv/
+
+output/*
+!output/.gitkeep
+
+mapping_store/*
+!mapping_store/.gitkeep
+mapping_store.db
+
+config/auth_settings.json

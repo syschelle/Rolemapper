@@ -1,0 +1,16 @@
+services:
+  rolemapper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rolemapper
+    restart: unless-stopped
+    ports:
+      - "5080:5080"
+    environment:
+      - TZ=Europe/Berlin
+    volumes:
+      - ./config:/app/config
+      - ./output:/app/output
+      - ./Aufgabe:/app/Aufgabe
+      - ./mapping_store:/app/mapping_store

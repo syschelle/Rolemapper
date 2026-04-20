@@ -1,0 +1,52 @@
+<aside class="sidebar">
+  <div class="card menu">
+    <strong data-i18n="menu" style="display:block;margin-bottom:6px;">Menü / Navigation</strong>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('index', lang=current_lang) }}" data-i18n="nav.main">Hauptseite</a>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('admin_mappings', lang=current_lang) }}" data-i18n="nav.serverMappings">Server-Mappings</a>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('guide_page', lang=current_lang) }}" data-i18n="nav.guide">Anleitung / Guide</a>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('config_personas', lang=current_lang) }}" data-i18n="nav.personaConfig">Persona-Konfiguration</a>
+    {% if auth_admin %}
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('config_persona_names', lang=current_lang) }}" data-i18n="nav.personaNames">Persona-Liste bearbeiten</a>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('config_roles', lang=current_lang) }}" data-i18n="nav.roles">Rollenliste bearbeiten</a>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('config_i18n', lang=current_lang) }}" data-i18n="nav.i18n">Lokalisierungstexte bearbeiten</a>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('config_auth', lang=current_lang) }}" data-i18n="nav.config">Konfiguration</a>
+    {% elif auth_i18n %}
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('config_roles', lang=current_lang) }}" data-i18n="nav.roles">Rollenliste bearbeiten</a>
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('config_i18n', lang=current_lang) }}" data-i18n="nav.i18n">Lokalisierungstexte bearbeiten</a>
+    {% endif %}
+    <a style="display:block;padding:8px 10px;border-radius:8px;line-height:1.2;margin:2px 0;" href="{{ url_for('changelog_page', lang=current_lang) }}" data-i18n="nav.changelog">Changelog</a>
+  </div>
+</aside>
+<script>
+  (function(){
+    const labels = {
+      de: 'Konfiguration',
+      en: 'Configuration',
+      it: 'Configurazione',
+      fr: 'Configuration',
+      pt: 'Configuração',
+      es: 'Configuración'
+    };
+
+    const resolveLang = () => {
+      const qLang = (new URLSearchParams(window.location.search).get('lang') || '').toLowerCase();
+      const cLang = decodeURIComponent(((document.cookie.match(/(?:^|; )rolemapper_lang=([^;]+)/)||[])[1] || '')).toLowerCase();
+      const sLang = (localStorage.getItem('rolemapper_lang') || '').toLowerCase();
+      const sw = document.getElementById('langSwitch');
+      const wLang = (sw && sw.value ? String(sw.value) : '').toLowerCase();
+      return labels[wLang] ? wLang : (labels[qLang] ? qLang : (labels[cLang] ? cLang : (labels[sLang] ? sLang : 'de')));
+    };
+
+    const applyConfigLabel = () => {
+      const lang = resolveLang();
+      document.querySelectorAll('[data-i18n="nav.config"]').forEach((el) => {
+        el.textContent = labels[lang] || labels.de;
+      });
+    };
+
+    applyConfigLabel();
+    const sw = document.getElementById('langSwitch');
+    if (sw) sw.addEventListener('change', () => setTimeout(applyConfigLabel, 0));
+    window.addEventListener('pageshow', applyConfigLabel);
+  })();
+</script>

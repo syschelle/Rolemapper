@@ -1,0 +1,70 @@
+{
+  "DUClinicalDataAdministrator": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUClinicalWorkflowManager": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUClinician": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUFinalReporter": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUGuest": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUMedicalSecretary": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUNurse": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUObserver": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUPathologist": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DURadiologist": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUReporter": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUReviewer": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUScheduler": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUSpecializedClinician": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUSystemAdministrator": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUTemplateDesigner": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ],
+  "DUVendorAdmin": [
+    "InsightClientUser",
+    "du_perm_atna_access"
+  ]
+}

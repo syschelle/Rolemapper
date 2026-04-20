@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <title>Anleitung</title>
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --text:#1e2a39; --line:#d9e2ec; --accent:#0d6efd; }
+    *{box-sizing:border-box} body{margin:0;font-family:Calibri,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .header{height:64px;background:#0d3b66;color:#fff;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:20px;font-weight:700;position:sticky;top:0;z-index:40}
+    .hamburger{display:none;background:transparent;border:0;color:#fff;font-size:24px;cursor:pointer;padding:0 6px}
+    .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 64px)}
+    .sidebar{border-right:1px solid var(--line);background:#fff;padding:14px;position:sticky;top:64px;height:calc(100vh - 64px);overflow:auto}.content{padding:18px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+    .menu a{display:block;padding:8px 10px;border-radius:8px;color:#0d3b66;text-decoration:none}.menu a:hover{background:#eef4ff}
+    .overlay{display:none}
+    @media(max-width:980px){.hamburger{display:inline-block}.layout{grid-template-columns:1fr}.sidebar{position:fixed;left:-280px;top:64px;width:260px;height:calc(100vh - 64px);z-index:30;border-right:1px solid var(--line);transition:left .2s ease}.sidebar.open{left:0}.overlay{display:block;position:fixed;inset:64px 0 0 0;background:rgba(0,0,0,.35);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s ease}.overlay.show{opacity:1;pointer-events:auto}}
+  </style>
+</head>
+<body>
+  {% set page_title_default = 'Anleitung' %}
+  {% set header_login_href = '/' %}
+  {% include '_header.html' %}
+  <div class="layout">
+    {% include '_sidebar.html' %}
+    <div class="overlay" id="overlay"></div>
+    <main class="content">
+      <div class="card">
+        <h2 data-i18n="h1">So bedienst du die Hauptseite</h2>
+        <ol>
+          <li data-i18n="s1">Datei laden: CSV hochladen oder Testmodus nutzen.</li>
+          <li data-i18n="s2">Automatische Vorbelegung: vorhandene mapping.txt / mapping-*.txt wird berücksichtigt.</li>
+          <li data-i18n="s3">Mapping erstellen: Personas per Drag & Drop auf LDAP/ORBIS-Rollen ziehen.</li>
+          <li data-i18n="s4">Optional kopieren: Mit „Copy from“ Zuordnung von einer Rolle auf eine andere übernehmen.</li>
+          <li data-i18n="s5">TXT erzeugen: Button klicken, Download startet automatisch.</li>
+          <li data-i18n="s6">Permission-Modus: In Persona-Konfiguration Auto/Force old/Force new einstellen.</li>
+          <li data-i18n="s7">Externer Zugriff: Mit `https://FQDN/?load_mapping_code=&lt;Mappingcode&gt;` ein gespeichertes Mapping direkt laden und bearbeiten.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3 data-i18n="tips">Tipps</h3>
+        <ul>
+          <li data-i18n="t1">Doppelklick auf einen Eintrag im Zielbereich entfernt ihn.</li>
+          <li data-i18n="t2">Die Sprache ist live umschaltbar; Personas/Rollen bleiben unverändert.</li>
+          <li data-i18n="t3">Wenn etwas fehlt: Seite mit Strg+F5 neu laden.</li>
+        </ul>
+      </div>
+    </main>
+  </div>
+  <script>
+    (function(){
+      const I18N={
+        de:{title:'Anleitung',menu:'Menü / Navigation','nav.main':'Hauptseite','nav.serverMappings':'Server-Mappings','nav.guide':'Anleitung / Guide','nav.personaConfig':'Persona-Konfiguration','nav.roles':'Rollenliste bearbeiten','nav.personaNames':'Persona-Liste bearbeiten', 'nav.i18n':'Lokalisierungstexte bearbeiten','login':'Login','logout':'Logout', 'nav.changelog':'Changelog',h1:'So bedienst du die Hauptseite',s1:'Datei laden: mapping.txt importieren oder externe Rollen einfügen (Testmodus möglich).',s2:'Mapping laden: Code direkt in der Hauptseite eingeben oder über Server-Mappings per Laden-Button übernehmen.',s3:'Mapping erstellen: Personas/Rollen per Drag & Drop zuordnen und Metadaten (Land, Kundennummer, Side, Kunde) pflegen.',s4:'Optional kopieren: Mit „Copy from“ Zuordnung von einer Rolle auf eine andere übernehmen; neue Quellrollen können ergänzt werden.',s5:'Speichern/Update: Mapping am Server speichern oder bestehendes Server-Mapping ohne Historie aktualisieren; TXT-Download im Mapping oder in Server-Mappings.',s6:'Permission-Modus: In Persona-Konfiguration Auto/Force old/Force new einstellen.',s7:'Externer Zugriff: Mit https://FQDN/?load_mapping_code=<Mappingcode> ein gespeichertes Mapping direkt laden und bearbeiten.',tips:'Tipps',t1:'Doppelklick auf einen Eintrag im Zielbereich entfernt ihn.',t2:'Die Sprache ist live umschaltbar; Personas/Rollen bleiben unverändert.',t3:'Wenn etwas fehlt: Seite mit Strg+F5 neu laden.'},
+        en:{title:'Guide',menu:'Menu / Navigation','nav.main':'Main page','nav.serverMappings':'Server mappings','nav.guide':'Guide','nav.personaConfig':'Persona configuration','nav.roles':'Edit roles list','nav.personaNames':'Edit persona names', 'nav.i18n':'Edit localization texts','login':'Login','logout':'Logout', 'nav.changelog':'Changelog',h1:'How to use the main page',s1:'Load input: import mapping.txt or paste external roles (test mode also possible).',s2:'Load mapping: enter code on main page or use the Load button in Server mappings.',s3:'Build mapping: assign personas/roles via drag & drop and maintain metadata (country, customer no., side, customer).',s4:'Optional copy: use "Copy from" and add new source roles when needed.',s5:'Save/update: store mapping on server or update existing server mapping (no history); TXT can be downloaded here or in Server mappings.',s6:'Permission mode: set Auto/Force old/Force new in persona configuration.',s7:'External access: Use https://FQDN/?load_mapping_code=<Mappingcode> to load and edit a saved mapping directly.',tips:'Tips',t1:'Double-click an entry in target area to remove it.',t2:'Language switches live; personas/roles stay unchanged.',t3:'If something is missing: hard refresh with Ctrl+F5.'},
+        it:{title:'Guida',menu:'Menu / Navigazione','nav.main':'Pagina principale','nav.serverMappings':'Mapping server','nav.guide':'Guida','nav.personaConfig':'Configurazione persona','nav.roles':'Modifica elenco ruoli','nav.personaNames':'Modifica elenco persona', 'nav.i18n':'Modifica testi localizzazione','login':'Login','logout':'Logout', 'nav.changelog':'Changelog',h1:'Come usare la pagina principale',s1:'Carica input: importa mapping.txt o incolla ruoli esterni (anche modalità test).',s2:'Carica mapping: inserisci il codice in pagina principale o usa il pulsante Carica in Mapping server.',s3:'Crea mapping: assegna personas/ruoli con drag & drop e gestisci metadati (paese, numero cliente, side, cliente).',s4:'Copia opzionale: usa "Copy from" e aggiungi nuovi ruoli sorgente quando necessario.',s5:'Salva/aggiorna: salva sul server o aggiorna mapping esistente (senza cronologia); TXT scaricabile qui o in Mapping server.',s6:'Modalità permessi: imposta Auto/Force old/Force new nella configurazione persona.',s7:'Accesso esterno: usa https://FQDN/?load_mapping_code=<Mappingcode> per caricare e modificare direttamente un mapping salvato.',tips:'Suggerimenti',t1:'Doppio click su una voce nell\'area target per rimuoverla.',t2:'La lingua cambia al volo; personas/ruoli restano invariati.',t3:'Se manca qualcosa: aggiorna con Ctrl+F5.'},
+        fr:{title:'Guide',menu:'Menu / Navigation','nav.main':'Page principale','nav.serverMappings':'Mappings serveur','nav.guide':'Guide','nav.personaConfig':'Configuration des personas','nav.roles':'Modifier la liste des rôles','nav.personaNames':'Modifier la liste des personas', 'nav.i18n':'Modifier les textes de localisation','login':'Connexion','logout':'Déconnexion', 'nav.changelog':'Changelog',h1:'Comment utiliser la page principale',s1:'Charger les données : importer mapping.txt ou coller des rôles externes (mode test possible).',s2:'Charger un mapping : saisir le code sur la page principale ou utiliser le bouton Charger dans Mappings serveur.',s3:'Créer le mapping : affecter personas/rôles en glisser-déposer et renseigner les métadonnées (pays, n° client, side, client).',s4:'Copie optionnelle : utilisez "Copy from" et ajoutez de nouveaux rôles source si besoin.',s5:'Sauvegarde/mise à jour : enregistrer sur le serveur ou mettre à jour sans historique ; TXT téléchargeable ici ou via Mappings serveur.',s6:'Mode de permission : régler Auto/Force old/Force new dans la config persona.',s7:'Accès externe : utilisez https://FQDN/?load_mapping_code=<Mappingcode> pour charger et modifier directement un mapping enregistré.',tips:'Conseils',t1:'Double-cliquez une entrée dans la zone cible pour la supprimer.',t2:'La langue change à chaud ; personas/rôles restent inchangés.',t3:'Si quelque chose manque : rechargez avec Ctrl+F5.'},
+        pt:{title:'Guia',menu:'Menu / Navegação','nav.main':'Página principal','nav.serverMappings':'Mapeamentos do servidor','nav.guide':'Guia','nav.personaConfig':'Configuração de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas', 'nav.i18n':'Editar textos de localização','login':'Login','logout':'Logout', 'nav.changelog':'Changelog',h1:'Como usar a página principal',s1:'Carregar entrada: importar mapping.txt ou colar roles externos (modo teste também).',s2:'Carregar mapping: inserir código na página principal ou usar botão Carregar em Mapeamentos do servidor.',s3:'Criar mapeamento: atribuir personas/roles via drag & drop e manter metadados (país, nº cliente, side, cliente).',s4:'Cópia opcional: use "Copy from" e adicione novos roles de origem quando necessário.',s5:'Salvar/atualizar: salvar no servidor ou atualizar mapping existente (sem histórico); TXT pode ser baixado aqui ou em Mapeamentos do servidor.',s6:'Modo de permissão: definir Auto/Force old/Force new na configuração.',s7:'Acesso externo: use https://FQDN/?load_mapping_code=<Mappingcode> para carregar e editar diretamente um mapping salvo.',tips:'Dicas',t1:'Duplo clique remove item da área de destino.',t2:'Idioma muda ao vivo; personas/roles não são traduzidos.',t3:'Se faltar algo: recarregue com Ctrl+F5.'},
+        es:{title:'Guía',menu:'Menú / Navegación','nav.main':'Página principal','nav.serverMappings':'Mapeamentos do servidor','nav.guide':'Guía','nav.personaConfig':'Configuración de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas', 'nav.i18n':'Editar textos de localización','login':'Iniciar sesión','logout':'Cerrar sesión', 'nav.changelog':'Changelog',h1:'Cómo usar la página principal',s1:'Cargar entrada: importar mapping.txt o pegar roles externos (también modo prueba).',s2:'Cargar mapping: introducir código en la página principal o usar botón Cargar en Mapeos del servidor.',s3:'Crear mapeo: asignar personas/roles con drag & drop y mantener metadatos (país, nº cliente, side, cliente).',s4:'Copia opcional: usa "Copy from" y añade nuevos roles origen cuando haga falta.',s5:'Guardar/actualizar: guardar en servidor o actualizar mapping existente (sin historial); TXT se puede descargar aquí o en Mapeos del servidor.',s6:'Modo de permisos: configura Auto/Force old/Force new en configuración.',s7:'Acceso externo: usa https://FQDN/?load_mapping_code=<Mappingcode> para cargar y editar directamente un mapping guardado.',tips:'Consejos',t1:'Doble clic elimina una entrada del área destino.',t2:'El idioma cambia al vuelo; personas/roles no se traducen.',t3:'Si falta algo: recarga con Ctrl+F5.'}
+      };
+      const I18N_OVERRIDES = {{ i18n_overrides | tojson }};
+      if (I18N_OVERRIDES && typeof I18N_OVERRIDES === 'object') {
+        Object.entries(I18N_OVERRIDES).forEach(([lang, values]) => {
+          if (!I18N[lang] || !values || typeof values !== 'object') return;
+          Object.entries(values).forEach(([k, v]) => {
+            const mappedKey = String(k).startsWith('guide.') ? String(k).slice(6) : String(k);
+            if (mappedKey.startsWith('insider')) return;
+            I18N[lang][mappedKey] = String(v);
+          });
+        });
+      }
+      const updateMenuLangLinks=(lang)=>{document.querySelectorAll('.menu a[href^="/"]').forEach(a=>{try{const u=new URL(a.getAttribute('href'), window.location.origin);u.searchParams.set('lang',lang);a.setAttribute('href',u.pathname+u.search);}catch(_){}});};
+      const applyLang=(lang)=>{const d=I18N[lang]||I18N.de;document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(d[k])el.textContent=d[k];});document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const k=el.dataset.i18nPlaceholder;if(d[k])el.placeholder=d[k];});updateMenuLangLinks(lang);localStorage.setItem('rolemapper_lang',lang); document.cookie='rolemapper_lang='+encodeURIComponent(lang)+'; path=/; max-age=31536000; SameSite=Lax';};
+      const langSwitch=document.getElementById('langSwitch'); const saved=localStorage.getItem('rolemapper_lang')||'de'; if(langSwitch){langSwitch.value=saved;langSwitch.addEventListener('change',()=>applyLang(langSwitch.value));} applyLang(saved);
+      const menuBtn=document.getElementById('hamburgerBtn'); const sidebar=document.querySelector('.sidebar'); const overlay=document.getElementById('overlay'); const close=()=>{sidebar&&sidebar.classList.remove('open');overlay&&overlay.classList.remove('show');};
+      if(menuBtn&&sidebar&&overlay){menuBtn.addEventListener('click',()=>{sidebar.classList.toggle('open');overlay.classList.toggle('show');});overlay.addEventListener('click',close);window.addEventListener('resize',()=>{if(window.innerWidth>980)close();});}
+    })();
+  </script>
+
+  
+</body>
+</html>

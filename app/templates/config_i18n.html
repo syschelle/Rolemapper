@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <title>Lokalisierungstexte bearbeiten</title>
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --text:#1e2a39; --line:#d9e2ec; --accent:#0d6efd; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Calibri,Arial,sans-serif; color:var(--text); background:var(--bg); }
+    .header { height:64px; background:#0d3b66; color:#fff; display:flex; align-items:center; gap:10px; padding:0 18px; font-size:20px; font-weight:700; position:sticky; top:0; z-index:40; }
+    .layout { display:grid; grid-template-columns:260px 1fr; min-height:calc(100vh - 64px); }
+    .sidebar { border-right:1px solid var(--line); background:#fff; padding:14px; position:sticky; top:64px; height:calc(100vh - 64px); overflow:auto; }
+    .content { padding:18px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+    .menu a { display:block; padding:8px 10px; border-radius:8px; color:#0d3b66; text-decoration:none; }
+    .menu a:hover { background:#eef4ff; }
+    .flash { background:#e8f4ff; border:1px solid #b6dcff; padding:10px; border-radius:8px; margin-bottom:10px; }
+    input[type="text"] { width:100%; padding:8px; border:1px solid #c7d5e2; border-radius:6px; }
+    button { background:#fff; color:#0d3b66; border:1px solid #d9e2ec; border-radius:8px; padding:10px 14px; cursor:pointer; }
+    button:hover{background:#eef4ff;}
+    .row { display:grid; grid-template-columns:260px 1fr; gap:10px; align-items:start; margin-bottom:8px; }
+    .k { font-family:ui-monospace,Consolas,monospace; font-size:12px; color:#41566c; }
+    .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .search { width:100%; max-width:420px; }
+    @media (max-width: 980px) { .layout{grid-template-columns:1fr;} .sidebar{position:static;height:auto;} .row{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  {% set page_title_default = 'Lokalisierungstexte bearbeiten' %}
+  {% set header_login_href = '/' %}
+  {% include '_header.html' %}
+  <div class="layout">
+    {% include '_sidebar.html' %}
+    <main class="content">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+      {% endwith %}
+
+      <div class="card">
+        <div class="bar">
+          <strong data-i18n="editLang">Bearbeitungssprache:</strong>
+          <span id="activeLangBadge" style="font-weight:700;">{{ selected_lang|upper }}</span>
+          <span style="font-size:12px;color:#607487;" data-i18n="editHint">Die Bearbeitungssprache folgt der im Header gewählten Sprache.</span>
+          <input id="searchInput" class="search" type="text" placeholder="Text suchen..." data-i18n-placeholder="searchPh">
+        </div>
+      </div>
+
+      <form method="post" action="/config-i18n" class="card" id="i18nForm">
+        <input type="hidden" id="activeLangInput" name="lang" value="{{ selected_lang }}">
+        {% if not can_edit %}
+        <div class="flash" style="background:#fff7e6;border-color:#ffe0a3;"><span data-i18n="readonlyNotice">Diese Sprache ist aktuell nur lesbar. Zum Bearbeiten bitte mit dem Passwort für</span> <strong>{{ selected_lang|upper }}</strong> <span data-i18n="readonlyNoticeSuffix">anmelden.</span></div>
+        {% endif %}
+        <div class="row" style="font-weight:700;">
+          <div data-i18n="colKey">Key</div><div data-i18n="colNew">Neuer Text</div>
+        </div>
+        {% for r in rows %}
+        <div class="row i18n-row" data-key="{{ r.key|lower }}" data-value="{{ r.value|lower }}">
+          <div class="k">{{ r.key }}</div>
+          <div><input type="text" name="val__{{ r.key }}" value="{{ r.value|e }}" {% if not can_edit %}disabled{% endif %}></div>
+        </div>
+        {% endfor %}
+        <button type="submit" data-i18n="save" {% if not can_edit %}disabled style="opacity:.6;cursor:not-allowed;"{% endif %}>Lokalisierung speichern</button>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    (function(){
+      const I18N={
+        de:{title:'Lokalisierungstexte bearbeiten',menu:'Menü / Navigation','nav.main':'Hauptseite','nav.guide':'Anleitung / Guide','nav.personaConfig':'Persona-Konfiguration','nav.roles':'Rollenliste bearbeiten','nav.personaNames':'Persona-Liste bearbeiten','nav.i18n':'Lokalisierungstexte bearbeiten', 'nav.changelog':'Changelog',editLang:'Bearbeitungssprache:',editHint:'Die Bearbeitungssprache folgt der im Header gewählten Sprache.',searchPh:'Text suchen...',colKey:'Key',colNew:'Neuer Text',save:'Lokalisierung speichern',readonlyNotice:'Diese Sprache ist aktuell nur lesbar. Zum Bearbeiten bitte mit dem Passwort für',readonlyNoticeSuffix:'anmelden.'},
+        en:{title:'Edit localization texts',menu:'Menu / Navigation','nav.main':'Main page','nav.guide':'Guide','nav.personaConfig':'Persona configuration','nav.roles':'Edit roles list','nav.personaNames':'Edit persona names','nav.i18n':'Edit localization texts', 'nav.changelog':'Changelog',editLang:'Editing language:',editHint:'The editing language follows the language selected in the header.',searchPh:'Search text...',colKey:'Key',colNew:'New text',save:'Save localization',readonlyNotice:'This language is currently read-only. To edit, please sign in with the password for',readonlyNoticeSuffix:'.'},
+        it:{title:'Modifica testi localizzazione',menu:'Menu / Navigazione','nav.main':'Pagina principale','nav.guide':'Guida','nav.personaConfig':'Configurazione persona','nav.roles':'Modifica elenco ruoli','nav.personaNames':'Modifica elenco persona','nav.i18n':'Modifica testi localizzazione', 'nav.changelog':'Changelog',editLang:'Lingua da modificare:',editHint:'La lingua di modifica segue la lingua selezionata nell\'header.',searchPh:'Cerca testo...',colKey:'Chiave',colNew:'Nuovo testo',save:'Salva localizzazione',readonlyNotice:'Questa lingua è attualmente in sola lettura. Per modificare, accedi con la password per',readonlyNoticeSuffix:'.'},
+        fr:{title:'Modifier les textes de localisation',menu:'Menu / Navigation','nav.main':'Page principale','nav.guide':'Guide','nav.personaConfig':'Configuration des personas','nav.roles':'Modifier la liste des rôles','nav.personaNames':'Modifier la liste des personas','nav.i18n':'Modifier les textes de localisation', 'nav.changelog':'Changelog',editLang:'Langue à modifier :',editHint:'La langue d\'édition suit la langue sélectionnée dans l\'en-tête.',searchPh:'Rechercher un texte...',colKey:'Clé',colNew:'Nouveau texte',save:'Enregistrer la localisation',readonlyNotice:'Cette langue est actuellement en lecture seule. Pour modifier, connectez-vous avec le mot de passe pour',readonlyNoticeSuffix:'.'},
+        pt:{title:'Editar textos de localização',menu:'Menu / Navegação','nav.main':'Página principal','nav.guide':'Guia','nav.personaConfig':'Configuração de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localização', 'nav.changelog':'Changelog',editLang:'Idioma para editar:',editHint:'O idioma de edição segue o idioma selecionado no cabeçalho.',searchPh:'Buscar texto...',colKey:'Chave',colNew:'Novo texto',save:'Salvar localização',readonlyNotice:'Este idioma está atualmente somente leitura. Para editar, faça login com a senha de',readonlyNoticeSuffix:'.'},
+        es:{title:'Editar textos de localización',menu:'Menú / Navegación','nav.main':'Página principal','nav.guide':'Guía','nav.personaConfig':'Configuración de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localización', 'nav.changelog':'Changelog',editLang:'Idioma a editar:',editHint:'El idioma de edición sigue el idioma seleccionado en el encabezado.',searchPh:'Buscar texto...',colKey:'Clave',colNew:'Texto nuevo',save:'Guardar localización',readonlyNotice:'Este idioma está actualmente en solo lectura. Para editar, inicia sesión con la contraseña de',readonlyNoticeSuffix:'.'}
+      };
+      const applyLang=(lang)=>{const d=I18N[lang]||I18N.de;document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(d[k])el.textContent=d[k];});document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const k=el.dataset.i18nPlaceholder;if(d[k])el.placeholder=d[k];});localStorage.setItem('rolemapper_lang',lang); document.cookie='rolemapper_lang='+encodeURIComponent(lang)+'; path=/; max-age=31536000; SameSite=Lax';};
+      const langSwitch=document.getElementById('langSwitch');
+      const activeLangInput=document.getElementById('activeLangInput');
+      const activeLangBadge=document.getElementById('activeLangBadge');
+      const serverLang='{{ selected_lang }}';
+      const saved=localStorage.getItem('rolemapper_lang')||serverLang||'de';
+
+      const syncActiveLang=(lang)=>{
+        if(activeLangInput) activeLangInput.value=lang;
+        if(activeLangBadge) activeLangBadge.textContent=String(lang||'de').toUpperCase();
+      };
+
+      if(langSwitch){
+        langSwitch.value=saved;
+        langSwitch.addEventListener('change',()=>{
+          const next=langSwitch.value||'de';
+          localStorage.setItem('rolemapper_lang',next);
+          window.location.href='/config-i18n?lang='+encodeURIComponent(next);
+        });
+      }
+
+      if(saved!==serverLang){
+        window.location.href='/config-i18n?lang='+encodeURIComponent(saved);
+        return;
+      }
+
+      applyLang(serverLang);
+      syncActiveLang(serverLang);
+
+      const searchInput=document.getElementById('searchInput');
+      const filterRows=(q)=>{
+        const needle=String(q||'').trim().toLowerCase();
+        document.querySelectorAll('.i18n-row').forEach((row)=>{
+          const key=row.dataset.key||'';
+          const input=row.querySelector('input[type="text"]');
+          const value=((input&&input.value)||row.dataset.value||'').toLowerCase();
+          row.style.display = (!needle || key.includes(needle) || value.includes(needle)) ? '' : 'none';
+        });
+      };
+      if(searchInput){
+        searchInput.addEventListener('input', ()=>filterRows(searchInput.value));
+      }
+
+      const form=document.getElementById('i18nForm');
+      if(form){
+        form.addEventListener('submit', ()=>{
+          const current=(langSwitch&&langSwitch.value)||serverLang||'de';
+          syncActiveLang(current);
+        });
+      }
+    })();
+  </script>
+
+  <script>
+    (function(){
+      const roleI18n={
+        de:{label:'Rolle:',admin:'Admin',localizer:'Lokalisierer'},
+        en:{label:'Role:',admin:'Admin',localizer:'Localizer'},
+        it:{label:'Ruolo:',admin:'Admin',localizer:'Localizzatore'},
+        fr:{label:'Rôle :',admin:'Admin',localizer:'Localisateur'},
+        pt:{label:'Função:',admin:'Admin',localizer:'Localizador'},
+        es:{label:'Rol:',admin:'Admin',localizer:'Localizador'}
+      };
+      const applyRoleLang=(lang)=>{
+        const d=roleI18n[lang]||roleI18n.de;
+        document.querySelectorAll('.role-label').forEach(el=>el.textContent=d.label);
+        document.querySelectorAll('.role-value[data-role]').forEach(el=>{const r=el.getAttribute('data-role'); if(d[r]) el.textContent=d[r];});
+      };
+      const sw=document.getElementById('langSwitch');
+      const current=(sw&&sw.value)||localStorage.getItem('rolemapper_lang')||'de';
+      applyRoleLang(current);
+      if(sw){ sw.addEventListener('change',()=>setTimeout(()=>applyRoleLang(sw.value||'de'),0)); }
+    })();
+  </script>
+
+</body>
+</html>

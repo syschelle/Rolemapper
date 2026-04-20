@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <title>Changelog</title>
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --text:#1e2a39; --line:#d9e2ec; --accent:#0d6efd; }
+    *{box-sizing:border-box} body{margin:0;font-family:Calibri,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .header{height:64px;background:#0d3b66;color:#fff;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:20px;font-weight:700;position:sticky;top:0;z-index:40}
+    .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 64px)}
+    .sidebar{border-right:1px solid var(--line);background:#fff;padding:14px;position:sticky;top:64px;height:calc(100vh - 64px);overflow:auto}.content{padding:18px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+    .menu a{display:block;padding:8px 10px;border-radius:8px;color:#0d3b66;text-decoration:none}.menu a:hover{background:#eef4ff}
+    .download-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .dl-link{display:inline-block;padding:8px 10px;border-radius:8px;color:#0d3b66;text-decoration:none;border:1px solid #d9e2ec;background:#fff}
+    .dl-link:hover{background:#eef4ff}
+    pre{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:13px;margin:0}
+    .changelog{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.45}
+    .line-request{color:#0b5ed7;font-weight:700}
+    .line-answer{color:#198754;font-weight:700}
+    .line-change{color:#fd7e14;font-weight:700}
+    .line-system{color:#6f42c1;font-weight:700}
+    .intro-box{border:1px solid #cfe0ff;border-radius:10px;padding:12px 14px;margin:8px 0 14px 0;background:#f3f8ff;color:#6f42c1}
+    .intro-box *{color:#6f42c1 !important}
+    .version-box{border:1px solid #d9e2ec;border-radius:10px;padding:10px 12px;margin:10px 0;background:#fbfdff}
+    .version-title{font-weight:900;color:#0d3b66;margin-bottom:6px;font-size:18px;line-height:1.25}
+    @media(max-width:980px){.layout{grid-template-columns:1fr}.sidebar{position:static;height:auto}}
+  </style>
+</head>
+<body>
+  {% set page_title_default = 'Changelog' %}
+  {% set header_login_href = '/' %}
+  {% include '_header.html' %}
+  <div class="layout">
+    {% include '_sidebar.html' %}
+    <main class="content">
+      <div class="card">
+        <strong data-i18n="downloads">Downloads</strong>
+        <div class="download-links">
+          <a class="dl-link" href="/download/deploy-bundle" data-i18n="dl.deploy">Deployment Bundle ZIP</a>
+          <a class="dl-link" href="/download/changelog-pdf" data-i18n="dl.pdf">Changelog als PDF</a>
+        </div>
+      </div>
+      <div class="card"><div id="changelogView" class="changelog"></div></div>
+    </main>
+  </div>
+
+  <script>
+    (function(){
+      const I18N={
+        de:{title:'Changelog',menu:'Menü / Navigation','nav.main':'Hauptseite','nav.guide':'Anleitung / Guide','nav.personaConfig':'Persona-Konfiguration','nav.personaNames':'Persona-Liste bearbeiten','nav.roles':'Rollenliste bearbeiten','nav.i18n':'Lokalisierungstexte bearbeiten','nav.auth':'Konfiguration','nav.changelog':'Changelog',downloads:'Downloads','dl.deploy':'Deployment Bundle ZIP','dl.pdf':'Changelog als PDF'},
+        en:{title:'Changelog',menu:'Menu / Navigation','nav.main':'Main page','nav.guide':'Guide','nav.personaConfig':'Persona configuration','nav.personaNames':'Edit persona list','nav.roles':'Edit roles list','nav.i18n':'Edit localization texts','nav.auth':'Configuration','nav.changelog':'Changelog',downloads:'Downloads','dl.deploy':'Deployment Bundle ZIP','dl.pdf':'Changelog as PDF'},
+        it:{title:'Changelog',menu:'Menu / Navigazione','nav.main':'Pagina principale','nav.guide':'Guida','nav.personaConfig':'Configurazione persona','nav.personaNames':'Modifica elenco persona','nav.roles':'Modifica elenco ruoli','nav.i18n':'Modifica testi localizzazione','nav.auth':'Configurazione','nav.changelog':'Changelog',downloads:'Download','dl.deploy':'Deployment Bundle ZIP','dl.pdf':'Changelog come PDF'},
+        fr:{title:'Changelog',menu:'Menu / Navigation','nav.main':'Page principale','nav.guide':'Guide','nav.personaConfig':'Configuration des personas','nav.personaNames':'Modifier la liste des personas','nav.roles':'Modifier la liste des rôles','nav.i18n':'Modifier les textes de localisation','nav.auth':'Configuration','nav.changelog':'Changelog',downloads:'Téléchargements','dl.deploy':'Bundle de déploiement ZIP','dl.pdf':'Changelog en PDF'},
+        pt:{title:'Changelog',menu:'Menu / Navegação','nav.main':'Página principal','nav.guide':'Guia','nav.personaConfig':'Configuração de personas','nav.personaNames':'Editar lista de personas','nav.roles':'Editar lista de roles','nav.i18n':'Editar textos de localização','nav.auth':'Configuração','nav.changelog':'Changelog',downloads:'Downloads','dl.deploy':'Pacote de deployment ZIP','dl.pdf':'Changelog em PDF'},
+        es:{title:'Changelog',menu:'Menú / Navegación','nav.main':'Página principal','nav.guide':'Guía','nav.personaConfig':'Configuración de personas','nav.personaNames':'Editar lista de personas','nav.roles':'Editar lista de roles','nav.i18n':'Editar textos de localización','nav.auth':'Configuración','nav.changelog':'Changelog',downloads:'Descargas','dl.deploy':'Bundle de despliegue ZIP','dl.pdf':'Changelog en PDF'}
+      };
+      const applyLang=(lang)=>{const d=I18N[lang]||I18N.de;document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(d[k])el.textContent=d[k];});localStorage.setItem('rolemapper_lang',lang);document.cookie='rolemapper_lang='+encodeURIComponent(lang)+'; path=/; max-age=31536000; SameSite=Lax';};
+      const sw=document.getElementById('langSwitch'); const saved=localStorage.getItem('rolemapper_lang')||'de'; if(sw){sw.value=saved; sw.addEventListener('change',()=>{applyLang(sw.value); renderChangelog(sw.value);});} applyLang(saved);
+
+      const raw = {{ changelog_content | tojson }};
+      const esc = (s)=>String(s)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;');
+
+      const translateSystemLine = (line, lang) => {
+        if (!line || lang === 'de') return line;
+        const mapEn = {
+          '## Permanente Systembeschreibung':'## Permanent System Description',
+          '- Produkt:':'- Product:',
+          '- UI-Grundlayout:':'- UI base layout:',
+          '- Hauptfunktion:':'- Main function:',
+          '- Mapping-Logik:':'- Mapping logic:',
+          '- Kundendaten-Metadaten':'- Customer metadata',
+          '- Vorbelegung:':'- Prefill:',
+          '- Sicherheit/Härtung:':'- Security/Hardening:',
+          '- Rollen- und Rechtemodell:':'- Roles and permission model:',
+          '- Server-Mappings:':'- Server mappings:',
+          '- Konfigurierbare Datenquellen':'- Configurable data sources',
+          '- Backup:':'- Backup:',
+          '- APIs:':'- APIs:',
+          '- Changelog/Transparenz:':'- Changelog/Transparency:',
+          '- Nicht angemeldet:':'- Not authenticated:',
+          '- Admin:':'- Admin:',
+          '- Lokalisierer:':'- Localizer:',
+          '- Hinweis:':'- Note:'
+        };
+        const titleMap = {
+          it:'## Descrizione permanente del sistema',
+          fr:'## Description permanente du système',
+          pt:'## Descrição permanente do sistema',
+          es:'## Descripción permanente del sistema'
+        };
+        const indent = (line.match(/^(\s*)/) || [''])[0];
+        const core = line.slice(indent.length);
+        if (core.startsWith('## Permanente Systembeschreibung') && titleMap[lang]) return indent + titleMap[lang];
+        for (const [k,v] of Object.entries(mapEn)) {
+          if (core.startsWith(k)) return indent + core.replace(k,v);
+        }
+        // fallback: keep full content, even if untranslated
+        return line;
+      };
+
+      const SYSTEM_BLOCK_EN = [
+        '## Permanent System Description',
+        '- Product: Flask-based LDAP/ORBIS → Keycloak Rolemapper (Python).',
+        '- UI base layout: header + left navigation + right content area, responsive.',
+        '- Main function:',
+        '  - Import of `mapping.txt` / `mapping-*.txt`',
+        '  - Import of dirty Keycloak lines (`RoleMapper_<SOURCE>_to_<TARGET>`), everything else is ignored',
+        '  - Assignment per SOURCE role via drag & drop',
+        '  - Output as `mapping-YYYYMMDD-HHMMSS.txt`',
+        '- Mapping logic:',
+        '  - Persona assignments per SOURCE',
+        '  - Direct role assignments per SOURCE (extra role pool on main page)',
+        '  - Output contains persona lines plus role lines (including old/new compatibility expansion)',
+        '  - SOURCE roles without assignment are persisted server-side (`source_roles`) even without mapping lines',
+        '- Customer metadata (server mapping):',
+        '  - `country`, `postal_code`, `city`, `customer_no`, `site`, `customer`',
+        '  - Note: `site` is the current field name (legacy `side` is still read backward-compatibly)',
+        '- Prefill:',
+        '  - Persona and role matches are prefilled automatically from newest mapping TXT',
+        '- Security / hardening:',
+        '  - Inputs/uploads sanitized as plain text',
+        '  - Hardened TXT import (token sanitizing, length limits, blocking `javascript:` prefixes)',
+        '  - Safe redirect validation (`next` internal only)',
+        '- Roles / permissions model:',
+        '  - Not authenticated: main page usable, guide read-only, persona config read-only, changelog + PDF visible',
+        '  - Admin: full visibility + full write rights',
+        '  - Localizer: language-scoped write rights for localization + role descriptions',
+        '- Server mappings:',
+        '  - List view under `/admin-mappings`',
+        '  - Per-entry actions: load, TXT download, line view',
+        '  - Admin-only deletion in column "Delete"',
+        '- Configurable data sources (`config/`):',
+        '  - personas/roles/persona names/descriptions/role descriptions/app settings/i18n/auth/sample roles',
+        '- Backup:',
+        '  - ZIP backup via `/download/config-backup`',
+        '  - Includes config files + `mapping_store/` (server mappings)',
+        '- APIs:',
+        '  - `GET /api/mapping-download/<code>` → Download with filename `mapping-<CODE>.txt`',
+        '  - `GET|POST /api/mapping-init`',
+        '    - Interface: creates server structure (customer metadata + optional `source_roles`)',
+        '    - Response: `code`, `load_url`, `download_url`',
+        '    - Duplicate check: `409 customer_exists` (override: `allow_existing=true`)',
+        '    - Example (GET): `/api/mapping-init?country=DE&postal_code=50667&city=K%C3%B6ln&customer_no=K-10042&site=Zentrale&customer=Beispiel%20GmbH&source_roles=ROLE_SALES,ROLE_SUPPORT`',
+        '  - `GET /api/mapping-load/<code>` → Returns saved mapping + metadata as JSON',
+        '  - `GET /api/mapping-codes` → Returns all saved codes with compact metadata, `updated_ts` and mapping lines',
+        '  - UI direct load via API code: `/api/edit-mapping/<CODE>`',
+        '- Changelog / transparency: in-app changelog view with semantic colors + PDF export.'
+      ];
+      const localizeApiLine = (line, lang) => {
+        const maps = {
+          it: {
+            '- APIs:':'- API:',
+            '  - `GET /api/mapping-download/<code>`':'  - `GET /api/mapping-download/<code>` → Download con nome file `mapping-<CODE>.txt`',
+            '  - `GET|POST /api/mapping-init`':'  - `GET|POST /api/mapping-init` → Interfaccia: crea struttura server (metadati cliente + opzionale `source_roles`) | Response: `code`, `load_url`, `download_url` | Controllo duplicati: `409 customer_exists` (override: `allow_existing=true`) | Esempio (GET): `/api/mapping-init?country=DE&postal_code=50667&city=K%C3%B6ln&customer_no=K-10042&site=Zentrale&customer=Beispiel%20GmbH&source_roles=ROLE_SALES,ROLE_SUPPORT`',
+            '  - `GET /api/mapping-load/<code>`':'  - `GET /api/mapping-load/<code>` → Restituisce mapping salvato + metadati come JSON',
+            '  - `GET /api/mapping-codes`':'  - `GET /api/mapping-codes` → Restituisce tutti i codici salvati con metadati compatti, `updated_ts` e righe mapping',
+            '  - UI direct load via API code: `/api/edit-mapping/<CODE>`':'  - Caricamento diretto UI via codice API: `/api/edit-mapping/<CODE>`'
+          },
+          fr: {
+            '- APIs:':'- APIs :',
+            '  - `GET /api/mapping-download/<code>`':'  - `GET /api/mapping-download/<code>` → Téléchargement avec nom de fichier `mapping-<CODE>.txt`',
+            '  - `GET|POST /api/mapping-init`':'  - `GET|POST /api/mapping-init` → Interface : crée la structure serveur (métadonnées client + `source_roles` optionnel) | Réponse : `code`, `load_url`, `download_url` | Contrôle des doublons : `409 customer_exists` (override : `allow_existing=true`) | Exemple (GET) : `/api/mapping-init?country=DE&postal_code=50667&city=K%C3%B6ln&customer_no=K-10042&site=Zentrale&customer=Beispiel%20GmbH&source_roles=ROLE_SALES,ROLE_SUPPORT`',
+            '  - `GET /api/mapping-load/<code>`':'  - `GET /api/mapping-load/<code>` → Renvoie le mapping sauvegardé + métadonnées en JSON',
+            '  - `GET /api/mapping-codes`':'  - `GET /api/mapping-codes` → Renvoie tous les codes sauvegardés avec métadonnées compactes, `updated_ts` et lignes de mapping',
+            '  - UI direct load via API code: `/api/edit-mapping/<CODE>`':'  - Chargement direct UI via code API : `/api/edit-mapping/<CODE>`'
+          },
+          pt: {
+            '- APIs:':'- APIs:',
+            '  - `GET /api/mapping-download/<code>`':'  - `GET /api/mapping-download/<code>` → Download com nome de arquivo `mapping-<CODE>.txt`',
+            '  - `GET|POST /api/mapping-init`':'  - `GET|POST /api/mapping-init` → Interface: cria estrutura no servidor (metadados do cliente + `source_roles` opcional) | Resposta: `code`, `load_url`, `download_url` | Verificação de duplicidade: `409 customer_exists` (override: `allow_existing=true`) | Exemplo (GET): `/api/mapping-init?country=DE&postal_code=50667&city=K%C3%B6ln&customer_no=K-10042&site=Zentrale&customer=Beispiel%20GmbH&source_roles=ROLE_SALES,ROLE_SUPPORT`',
+            '  - `GET /api/mapping-load/<code>`':'  - `GET /api/mapping-load/<code>` → Retorna mapping salvo + metadados em JSON',
+            '  - `GET /api/mapping-codes`':'  - `GET /api/mapping-codes` → Retorna todos os códigos salvos com metadados compactos, `updated_ts` e linhas do mapping',
+            '  - UI direct load via API code: `/api/edit-mapping/<CODE>`':'  - Carregamento direto da UI via código API: `/api/edit-mapping/<CODE>`'
+          },
+          es: {
+            '- APIs:':'- APIs:',
+            '  - `GET /api/mapping-download/<code>`':'  - `GET /api/mapping-download/<code>` → Descarga con nombre de archivo `mapping-<CODE>.txt`',
+            '  - `GET|POST /api/mapping-init`':'  - `GET|POST /api/mapping-init` → Interfaz: crea estructura en servidor (metadatos de cliente + `source_roles` opcional) | Respuesta: `code`, `load_url`, `download_url` | Control de duplicados: `409 customer_exists` (override: `allow_existing=true`) | Ejemplo (GET): `/api/mapping-init?country=DE&postal_code=50667&city=K%C3%B6ln&customer_no=K-10042&site=Zentrale&customer=Beispiel%20GmbH&source_roles=ROLE_SALES,ROLE_SUPPORT`',
+            '  - `GET /api/mapping-load/<code>`':'  - `GET /api/mapping-load/<code>` → Devuelve mapping guardado + metadatos en JSON',
+            '  - `GET /api/mapping-codes`':'  - `GET /api/mapping-codes` → Devuelve todos los códigos guardados con metadatos compactos, `updated_ts` y líneas de mapping',
+            '  - UI direct load via API code: `/api/edit-mapping/<CODE>`':'  - Carga directa de UI vía código API: `/api/edit-mapping/<CODE>`'
+          }
+        };
+        const m = maps[lang] || {};
+        return m[line] || line;
+      };
+
+      const SYSTEM_BLOCKS = {
+        en: SYSTEM_BLOCK_EN,
+        it: ['## Descrizione permanente del sistema', ...SYSTEM_BLOCK_EN.slice(1).map((l)=>localizeApiLine(l,'it'))],
+        fr: ['## Description permanente du système', ...SYSTEM_BLOCK_EN.slice(1).map((l)=>localizeApiLine(l,'fr'))],
+        pt: ['## Descrição permanente do sistema', ...SYSTEM_BLOCK_EN.slice(1).map((l)=>localizeApiLine(l,'pt'))],
+        es: ['## Descripción permanente del sistema', ...SYSTEM_BLOCK_EN.slice(1).map((l)=>localizeApiLine(l,'es'))]
+      };
+
+      const renderChangelog = (lang) => {
+        const lines = String(raw||'').split('\n');
+        let inSystemBlock = false;
+        let inVersionBox = false;
+        let inIntroBox = false;
+        let introStarted = false;
+        let skipOriginalIntro = false;
+        let html = '';
+        const openVersionBox = (title)=>{
+          if (inIntroBox) { html += '</div>'; inIntroBox = false; }
+          if (inVersionBox) html += '</div>';
+          html += `<div class="version-box"><div class="version-title">${esc(title)}</div>`;
+          inVersionBox = true;
+        };
+
+        for (const line of lines) {
+          const rawLineOrig = String(line || '');
+          const rawLine = (inIntroBox && !rawLineOrig.startsWith('## v') && !skipOriginalIntro) ? translateSystemLine(rawLineOrig, lang) : rawLineOrig;
+          const safe = esc(rawLine);
+
+          if (!introStarted && rawLineOrig.startsWith('## Permanente Systembeschreibung')) {
+            html += '<div class="intro-box">';
+            inIntroBox = true;
+            introStarted = true;
+            if (lang !== 'de') {
+              const block = SYSTEM_BLOCKS[lang] || SYSTEM_BLOCKS.en;
+              block.forEach((l)=>{ html += `<div>${esc(l)}</div>`; });
+              skipOriginalIntro = true;
+            }
+            continue;
+          }
+
+          if (rawLineOrig.startsWith('## v')) {
+            if (inIntroBox) { html += '</div>'; inIntroBox = false; }
+            skipOriginalIntro = false;
+            inSystemBlock = false;
+            openVersionBox(rawLineOrig);
+            continue;
+          }
+
+          if (skipOriginalIntro) continue;
+
+          if (rawLineOrig.startsWith('### Technische Umsetzung') || rawLineOrig.startsWith('### Was für produktives Deployment nötig ist')) {
+            inSystemBlock = true;
+            html += `<div class="line-system">${safe}</div>`;
+            continue;
+          }
+
+          if (inSystemBlock && rawLineOrig.startsWith('---')) {
+            inSystemBlock = false;
+            html += `<div>${safe}</div>`;
+            continue;
+          }
+
+          if (inSystemBlock && (/^\s*\-\s/.test(rawLineOrig) || /^\s*\*\*/.test(rawLineOrig))) {
+            html += `<div class="line-system">${safe}</div>`;
+            continue;
+          }
+
+          if (rawLineOrig.startsWith('- Anfrage:')) { html += `<div class="line-request">${esc(rawLineOrig)}</div>`; continue; }
+          if (rawLineOrig.startsWith('- Antwort:')) { html += `<div class="line-answer">${esc(rawLineOrig)}</div>`; continue; }
+          if (rawLineOrig.startsWith('- Änderungen:') || /^\s*\-\s/.test(rawLineOrig)) { html += `<div class="line-change">${safe}</div>`; continue; }
+
+          html += `<div>${safe}</div>`;
+        }
+
+        if (inIntroBox) html += '</div>';
+        if (inVersionBox) html += '</div>';
+
+        const el = document.getElementById('changelogView');
+        if (el) el.innerHTML = html;
+      };
+
+      renderChangelog(saved);
+    })();
+  </script>
+  <script>
+    (function(){
+      const roleI18n={
+        de:{label:'Rolle:',admin:'Admin',localizer:'Lokalisierer'},
+        en:{label:'Role:',admin:'Admin',localizer:'Localizer'},
+        it:{label:'Ruolo:',admin:'Admin',localizer:'Localizzatore'},
+        fr:{label:'Rôle :',admin:'Admin',localizer:'Localisateur'},
+        pt:{label:'Função:',admin:'Admin',localizer:'Localizador'},
+        es:{label:'Rol:',admin:'Admin',localizer:'Localizador'}
+      };
+      const applyRoleLang=(lang)=>{
+        const d=roleI18n[lang]||roleI18n.de;
+        document.querySelectorAll('.role-label').forEach(el=>el.textContent=d.label);
+        document.querySelectorAll('.role-value[data-role]').forEach(el=>{const r=el.getAttribute('data-role'); if(d[r]) el.textContent=d[r];});
+      };
+      const sw=document.getElementById('langSwitch');
+      const current=(sw&&sw.value)||localStorage.getItem('rolemapper_lang')||'de';
+      applyRoleLang(current);
+      if(sw){ sw.addEventListener('change',()=>setTimeout(()=>applyRoleLang(sw.value||'de'),0)); }
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <title data-i18n="auth_config.title">Konfiguration</title>
+  <style>
+    :root{--bg:#f4f7fb;--panel:#fff;--text:#1e2a39;--line:#d9e2ec}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Calibri,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .header{height:64px;background:#0d3b66;color:#fff;display:flex;align-items:center;gap:10px;padding:0 18px;font-size:20px;font-weight:700;position:sticky;top:0;z-index:40}
+    .layout{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 64px)}
+    .sidebar{border-right:1px solid var(--line);background:#fff;padding:14px;position:sticky;top:64px;height:calc(100vh - 64px);overflow:auto}
+    .content{padding:18px}.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+    .menu a{display:block;padding:8px 10px;border-radius:8px;color:#0d3b66;text-decoration:none}.menu a:hover{background:#eef4ff}
+    input{width:100%;max-width:460px;padding:10px;border:1px solid #c7d5e2;border-radius:8px}
+    button{background:#fff;color:#0d3b66;border:1px solid #d9e2ec;border-radius:8px;padding:10px 14px;cursor:pointer} button:hover{background:#eef4ff}
+    .btn-link{display:inline-block;background:#fff;color:#0d3b66;border:1px solid #d9e2ec;border-radius:8px;padding:10px 14px;cursor:pointer;text-decoration:none;}
+    .btn-link:hover{background:#eef4ff;}
+    .flash{background:#e8f4ff;border:1px solid #b6dcff;padding:10px;border-radius:8px;margin-bottom:10px}
+    .muted{color:#607487}.row{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+    @media(max-width:980px){.layout{grid-template-columns:1fr}.sidebar{position:static;height:auto}.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  {% set page_title_default = 'Konfiguration' %}
+  {% set page_title_i18n = 'auth_config.title' %}
+  {% set header_login_href = '/' %}
+  {% include '_header.html' %}
+  <div class="layout">
+    {% include '_sidebar.html' %}
+    <main class="content">
+      {% with messages = get_flashed_messages() %}{% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}{% endwith %}
+      <div class="card">
+        <div class="muted"><span data-i18n="auth_config.status">Status:</span> <span data-i18n="auth_config.adminSet">Admin gesetzt</span> = {{ 'ja' if has_admin else 'nein' }}</div>
+      </div>
+
+      <div class="card">
+        <h4 data-i18n="auth_config.backupTitle">Konfigurations-Backup</h4>
+        <div class="muted" style="margin-bottom:10px;" data-i18n="auth_config.backupHint">Sichert Persona-Konfiguration, Persona-Liste, Rollenliste und Lokalisierungstexte als ZIP.</div>
+        <a class="btn-link" href="/download/config-backup" data-i18n="auth_config.backupBtn">Backup als ZIP herunterladen</a>
+      </div>
+
+      <form method="post" class="card">
+        <input type="hidden" name="ui_lang" id="uiLangField" value="de">
+        <h4 data-i18n="auth_config.adminPw">Admin-Passwort</h4>
+        <label data-i18n="auth_config.newAdminPw">Neues Admin-Passwort</label><br>
+        <input type="password" name="admin_password"><br><br>
+
+        <h4 data-i18n="auth_config.i18nPerLang">I18N Passwörter je Sprache</h4>
+        <div class="muted" style="margin-bottom:10px;" data-i18n="auth_config.i18nHint">Ein Feld pro Sprache. Leer lassen = unverändert.</div>
+        {% for lang in langs %}
+        <div class="row">
+          <label><strong>{{ lang|upper }}</strong> {% if status_by_lang.get(lang) %}✅{% else %}⚪{% endif %}</label>
+          <input type="password" name="i18n_password_{{ lang }}" placeholder="Passwort für {{ lang|upper }}">
+        </div>
+        {% endfor %}
+
+        <h4 data-i18n="auth_config.sampleRoles">Beispiel AD/ORBIS Gruppen</h4>
+        <div class="muted" style="margin-bottom:10px;" data-i18n="auth_config.sampleRolesHint">Eine Rolle pro Zeile. Wird für den Button „Beispielrollen einfügen“ genutzt.</div>
+        <textarea name="sample_roles_text" style="width:100%;max-width:760px;min-height:140px;padding:10px;border:1px solid #c7d5e2;border-radius:8px;">{{ sample_roles_text or '' }}</textarea>
+        <br><br>
+
+        <h4 data-i18n="auth_config.testBanner">Hinweis-Badge im Header</h4>
+        <label style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="show_test_banner" value="1" {% if show_test_banner %}checked{% endif %} style="width:auto;max-width:none;">
+          <span data-i18n="auth_config.testBannerHint">„Testversion not for production“ anzeigen</span>
+        </label>
+        <br>
+
+        <button type="submit" data-i18n="auth_config.save">Speichern</button>
+      </form>
+    </main>
+  </div>
+  <script>
+    (function(){
+      const I18N={
+        de:{menu:'Menü / Navigation','nav.main':'Hauptseite','nav.guide':'Anleitung / Guide','nav.personaConfig':'Persona-Konfiguration','nav.personaNames':'Persona-Liste bearbeiten','nav.roles':'Rollenliste bearbeiten','nav.i18n':'Lokalisierungstexte bearbeiten','nav.changelog':'Changelog','auth_config.title':'Konfiguration','auth_config.status':'Status:','auth_config.adminSet':'Admin gesetzt','auth_config.adminPw':'Admin-Passwort','auth_config.newAdminPw':'Neues Admin-Passwort','auth_config.save':'Speichern','auth_config.i18nPerLang':'I18N Passwörter je Sprache','auth_config.i18nHint':'Ein Feld pro Sprache. Leer lassen = unverändert.','auth_config.sampleRoles':'Beispiel AD/ORBIS Gruppen','auth_config.sampleRolesHint':'Eine Rolle pro Zeile. Wird für den Button „Beispielrollen einfügen“ genutzt.','auth_config.backupTitle':'Konfigurations-Backup','auth_config.backupHint':'Sichert Persona-Konfiguration, Persona-Liste, Rollenliste und Lokalisierungstexte als ZIP.','auth_config.backupBtn':'Backup als ZIP herunterladen','auth_config.testBanner':'Hinweis-Badge im Header','auth_config.testBannerHint':'„Testversion not for production“ anzeigen'},
+        en:{menu:'Menu / Navigation','nav.main':'Main page','nav.guide':'Guide','nav.personaConfig':'Persona configuration','nav.personaNames':'Edit persona list','nav.roles':'Edit roles list','nav.i18n':'Edit localization texts','nav.changelog':'Changelog','auth_config.title':'Configuration','auth_config.status':'Status:','auth_config.adminSet':'Admin set','auth_config.adminPw':'Admin password','auth_config.newAdminPw':'New admin password','auth_config.save':'Save','auth_config.i18nPerLang':'I18N passwords per language','auth_config.i18nHint':'One field per language. Leave empty = unchanged.','auth_config.sampleRoles':'Sample AD/ORBIS groups','auth_config.sampleRolesHint':'One role per line. Used by the "Insert sample roles" button.','auth_config.backupTitle':'Configuration backup','auth_config.backupHint':'Creates a ZIP backup of persona configuration, persona list, roles list, and localization texts.','auth_config.backupBtn':'Download backup as ZIP','auth_config.testBanner':'Header notice badge','auth_config.testBannerHint':'Show "Testversion not for production"'},
+        it:{menu:'Menu / Navigazione','nav.main':'Pagina principale','nav.guide':'Guida','nav.personaConfig':'Configurazione persona','nav.personaNames':'Modifica elenco persona','nav.roles':'Modifica elenco ruoli','nav.i18n':'Modifica testi localizzazione','nav.changelog':'Changelog','auth_config.title':'Configurazione','auth_config.status':'Stato:','auth_config.adminSet':'Admin impostato','auth_config.adminPw':'Password admin','auth_config.newAdminPw':'Nuova password admin','auth_config.save':'Salva','auth_config.i18nPerLang':'Password I18N per lingua','auth_config.i18nHint':'Un campo per lingua. Lascia vuoto = invariato.','auth_config.sampleRoles':'Gruppi AD/ORBIS di esempio','auth_config.sampleRolesHint':'Un ruolo per riga. Usato dal pulsante per inserire ruoli di esempio.','auth_config.backupTitle':'Backup configurazione','auth_config.backupHint':'Crea un backup ZIP di configurazione persona, elenco persona, elenco ruoli e testi di localizzazione.','auth_config.backupBtn':'Scarica backup ZIP','auth_config.testBanner':'Badge di avviso nell\'header','auth_config.testBannerHint':'Mostra "Testversion not for production"'},
+        fr:{menu:'Menu / Navigation','nav.main':'Page principale','nav.guide':'Guide','nav.personaConfig':'Configuration des personas','nav.personaNames':'Modifier la liste des personas','nav.roles':'Modifier la liste des rôles','nav.i18n':'Modifier les textes de localisation','nav.changelog':'Changelog','auth_config.title':'Configuration','auth_config.status':'Statut :','auth_config.adminSet':'Admin défini','auth_config.adminPw':'Mot de passe admin','auth_config.newAdminPw':'Nouveau mot de passe admin','auth_config.save':'Enregistrer','auth_config.i18nPerLang':'Mots de passe I18N par langue','auth_config.i18nHint':'Un champ par langue. Laisser vide = inchangé.','auth_config.sampleRoles':'Groupes AD/ORBIS d\'exemple','auth_config.sampleRolesHint':'Un rôle par ligne. Utilisé par le bouton d\'insertion de rôles d\'exemple.','auth_config.backupTitle':'Sauvegarde de configuration','auth_config.backupHint':'Crée une sauvegarde ZIP de la configuration des personas, de la liste des personas, de la liste des rôles et des textes de localisation.','auth_config.backupBtn':'Télécharger la sauvegarde ZIP','auth_config.testBanner':'Badge d\'avertissement dans l\'en-tête','auth_config.testBannerHint':'Afficher "Testversion not for production"'},
+        pt:{menu:'Menu / Navegação','nav.main':'Página principal','nav.guide':'Guia','nav.personaConfig':'Configuração de personas','nav.personaNames':'Editar lista de personas','nav.roles':'Editar lista de roles','nav.i18n':'Editar textos de localização','nav.changelog':'Changelog','auth_config.title':'Configuração','auth_config.status':'Status:','auth_config.adminSet':'Admin configurado','auth_config.adminPw':'Senha admin','auth_config.newAdminPw':'Nova senha admin','auth_config.save':'Salvar','auth_config.i18nPerLang':'Senhas I18N por idioma','auth_config.i18nHint':'Um campo por idioma. Deixe vazio = inalterado.','auth_config.sampleRoles':'Grupos AD/ORBIS de exemplo','auth_config.sampleRolesHint':'Um role por linha. Usado pelo botão de inserir roles de exemplo.','auth_config.backupTitle':'Backup de configuração','auth_config.backupHint':'Cria um backup ZIP da configuração de personas, lista de personas, lista de roles e textos de localização.','auth_config.backupBtn':'Baixar backup ZIP','auth_config.testBanner':'Badge de aviso no cabeçalho','auth_config.testBannerHint':'Mostrar "Testversion not for production"'},
+        es:{menu:'Menú / Navegación','nav.main':'Página principal','nav.guide':'Guía','nav.personaConfig':'Configuración de personas','nav.personaNames':'Editar lista de personas','nav.roles':'Editar lista de roles','nav.i18n':'Editar textos de localización','nav.changelog':'Changelog','auth_config.title':'Configuración','auth_config.status':'Estado:','auth_config.adminSet':'Admin configurado','auth_config.adminPw':'Contraseña admin','auth_config.newAdminPw':'Nueva contraseña admin','auth_config.save':'Guardar','auth_config.i18nPerLang':'Contraseñas I18N por idioma','auth_config.i18nHint':'Un campo por idioma. Dejar vacío = sin cambios.','auth_config.sampleRoles':'Grupos AD/ORBIS de ejemplo','auth_config.sampleRolesHint':'Un rol por línea. Se usa para el botón de insertar roles de ejemplo.','auth_config.backupTitle':'Copia de seguridad de configuración','auth_config.backupHint':'Crea una copia ZIP de configuración de personas, lista de personas, lista de roles y textos de localización.','auth_config.backupBtn':'Descargar copia ZIP','auth_config.testBanner':'Insignia de aviso en la cabecera','auth_config.testBannerHint':'Mostrar "Testversion not for production"'}
+      };
+      const applyLang=(lang)=>{const d=I18N[lang]||I18N.de;document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(d[k])el.textContent=d[k];});localStorage.setItem('rolemapper_lang',lang);document.cookie='rolemapper_lang='+encodeURIComponent(lang)+'; path=/; max-age=31536000; SameSite=Lax'; const ui=document.getElementById('uiLangField'); if(ui) ui.value=lang;};
+      const sw=document.getElementById('langSwitch');
+      const qLang=(new URLSearchParams(location.search).get('lang')||'').toLowerCase();
+      const cLang=((document.cookie.match(/(?:^|; )rolemapper_lang=([^;]+)/)||[])[1]||'').toLowerCase();
+      const saved=(qLang||decodeURIComponent(cLang||'')||localStorage.getItem('rolemapper_lang')||'de').toLowerCase();
+      const initial=(I18N[saved]?saved:'de');
+      if(sw){sw.value=initial;sw.addEventListener('change',()=>applyLang(sw.value));}
+      applyLang(initial);
+    })();
+  </script>
+  <script>
+    (function(){
+      const roleI18n={
+        de:{label:'Rolle:',admin:'Admin',localizer:'Lokalisierer'},
+        en:{label:'Role:',admin:'Admin',localizer:'Localizer'},
+        it:{label:'Ruolo:',admin:'Admin',localizer:'Localizzatore'},
+        fr:{label:'Rôle :',admin:'Admin',localizer:'Localisateur'},
+        pt:{label:'Função:',admin:'Admin',localizer:'Localizador'},
+        es:{label:'Rol:',admin:'Admin',localizer:'Localizador'}
+      };
+      const applyRoleLang=(lang)=>{
+        const d=roleI18n[lang]||roleI18n.de;
+        document.querySelectorAll('.role-label').forEach(el=>el.textContent=d.label);
+        document.querySelectorAll('.role-value[data-role]').forEach(el=>{const r=el.getAttribute('data-role'); if(d[r]) el.textContent=d[r];});
+      };
+      const sw=document.getElementById('langSwitch');
+      const current=(sw&&sw.value)||localStorage.getItem('rolemapper_lang')||'de';
+      applyRoleLang(current);
+      if(sw){ sw.addEventListener('change',()=>setTimeout(()=>applyRoleLang(sw.value||'de'),0)); }
+    })();
+  </script>
+
+</body>
+</html>

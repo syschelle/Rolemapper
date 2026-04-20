@@ -1,0 +1,30 @@
+<header class="header">
+  {% if show_hamburger is not defined or show_hamburger %}<button class="hamburger" id="hamburgerBtn" aria-label="Menü">☰</button>{% endif %}
+  <span data-i18n="{{ page_title_i18n|default('title') }}">{{ page_title_default|default('Rolemapper') }}</span>
+  {% if auth_admin or auth_i18n %}
+    <span style="margin-left:auto;font-size:13px;opacity:.95;">
+      <span class="role-label">Rolle:</span>
+      <span class="role-value" data-role="{% if auth_admin %}admin{% else %}localizer{% endif %}">{% if auth_admin %}Admin{% else %}Lokalisierer{% endif %}</span>
+    </span>
+    <a href="/logout" {% if header_login_id %}id="{{ header_login_id }}"{% endif %} style="font-size:13px;color:#fff;text-decoration:underline;" data-i18n="logout">Logout</a>
+  {% else %}
+    <a href="{{ header_login_href|default('/') }}" {% if header_login_id %}id="{{ header_login_id }}"{% endif %} style="margin-left:auto;font-size:13px;color:#fff;text-decoration:underline;" data-i18n="login">Login</a>
+  {% endif %}
+  <span style="font-size:13px;opacity:.9;">v{{ app_version }}</span>
+  {% if show_test_banner %}<span style="font-size:12px;color:#ffb3b3;background:#7a0000;padding:3px 8px;border-radius:6px;">Testversion not for production</span>{% endif %}
+  <select id="langSwitch" style="margin-left:10px;">
+    <option value="de">DE</option><option value="en">EN</option><option value="it">IT</option>
+    <option value="fr">FR</option><option value="pt">PT</option><option value="es">ES</option>
+  </select>
+</header>
+<script>
+  (function(){
+    const allowed = ['de','en','it','fr','pt','es'];
+    const q = (new URLSearchParams(window.location.search).get('lang') || '').toLowerCase();
+    if (!allowed.includes(q)) return;
+    localStorage.setItem('rolemapper_lang', q);
+    document.cookie = 'rolemapper_lang=' + encodeURIComponent(q) + '; path=/; max-age=31536000; SameSite=Lax';
+    const sw = document.getElementById('langSwitch');
+    if (sw) sw.value = q;
+  })();
+</script>

@@ -1,0 +1,138 @@
+{
+  "DUClinicalDataAdministrator": {
+    "en": "A clinical data administrator is allowed to perform correction and deletion workflows on clinical data such as orders, schedules, DICOM Studies, ... within the solution.",
+    "de": "Ein Clinical Data Administrator darf Korrektur- und Lösch-Workflows auf klinischen Daten wie Aufträgen, Zeitplänen, DICOM-Studien usw. innerhalb der Lösung durchführen.",
+    "it": "Un amministratore dei dati clinici può eseguire flussi di lavoro di correzione ed eliminazione su dati clinici come ordini, pianificazioni, studi DICOM, ecc. all'interno della soluzione.",
+    "fr": "Un administrateur des données cliniques est autorisé à exécuter des workflows de correction et de suppression sur des données cliniques telles que les ordres, plannings, études DICOM, etc., au sein de la solution.",
+    "pt": "Um administrador de dados clínicos pode executar fluxos de correção e exclusão em dados clínicos como pedidos, agendas, estudos DICOM etc. dentro da solução.",
+    "es": "Un administrador de datos clínicos puede ejecutar flujos de corrección y eliminación sobre datos clínicos como órdenes, agendas, estudios DICOM, etc., dentro de la solución."
+  },
+  "DUClinicalWorkflowManager": {
+    "en": "A clinical workflow manager that manages aspects of the -ology workflow such as creating/managing patients and orders for scheduled and emergency cases.",
+    "de": "Ein Clinical Workflow Manager verwaltet Aspekte des -ology-Workflows, z. B. das Anlegen/Verwalten von Patienten und Aufträgen für geplante sowie Notfallfälle.",
+    "it": "Un responsabile del flusso di lavoro clinico gestisce aspetti del workflow -ology, ad esempio creazione/gestione di pazienti e ordini per casi programmati ed emergenze.",
+    "fr": "Un gestionnaire de workflow clinique gère des aspects du flux -ology, comme la création/gestion des patients et des ordres pour les cas planifiés et urgents.",
+    "pt": "Um gestor de fluxo clínico gerencia aspectos do workflow -ology, como criação/gestão de pacientes e pedidos para casos agendados e de emergência.",
+    "es": "Un gestor de flujo clínico administra aspectos del flujo -ology, como crear/gestionar pacientes y órdenes para casos programados y de emergencia."
+  },
+  "DUClinician": {
+    "en": "A doctor working in a ward who can prepare and sign radiological orders and receive the respective radiological reports.",
+    "de": "Ein Arzt auf einer Station, der radiologische Aufträge vorbereiten und signieren sowie die entsprechenden radiologischen Befunde erhalten kann.",
+    "it": "Un medico di reparto che può preparare e firmare ordini radiologici e ricevere i relativi referti radiologici.",
+    "fr": "Un médecin de service qui peut préparer et signer des demandes radiologiques et recevoir les comptes rendus correspondants.",
+    "pt": "Um médico de enfermaria que pode preparar e assinar pedidos radiológicos e receber os respetivos laudos radiológicos.",
+    "es": "Un médico de sala que puede preparar y firmar órdenes radiológicas y recibir los informes radiológicos correspondientes."
+  },
+  "DUFinalReporter": {
+    "en": "A final reporter is a radiologist of a high experience level who writes radiological reports to document any findings in the acquired images. To write such a report s/he usually uses speech recognition.",
+    "de": "Ein Final Reporter ist ein sehr erfahrener Radiologe, der radiologische Befunde erstellt, um Auffälligkeiten in den aufgenommenen Bildern zu dokumentieren. Dafür nutzt er/sie in der Regel Spracherkennung.",
+    "it": "Un final reporter è un radiologo con alto livello di esperienza che redige referti radiologici per documentare i reperti nelle immagini acquisite. Di solito utilizza il riconoscimento vocale.",
+    "fr": "Un final reporter est un radiologue très expérimenté qui rédige des comptes rendus radiologiques pour documenter les constatations dans les images acquises. Il/elle utilise généralement la reconnaissance vocale.",
+    "pt": "Um final reporter é um radiologista com elevado nível de experiência que elabora laudos radiológicos para documentar achados nas imagens adquiridas. Normalmente utiliza reconhecimento de voz.",
+    "es": "Un final reporter es un radiólogo con alta experiencia que redacta informes radiológicos para documentar hallazgos en las imágenes adquiridas. Normalmente usa reconocimiento de voz."
+  },
+  "DUGuest": {
+    "en": "A guest, e.g. a student attending a seminar or an external researcher, has restricted viewing access to selected content. S/he can login to DeepUnity applications but consume assigned content only without editing permissions.",
+    "de": "Ein Gast, z. B. ein Seminarteilnehmer oder externer Forscher, hat eingeschränkten Lesezugriff auf ausgewählte Inhalte. Er/Sie kann sich in DeepUnity anmelden, aber nur zugewiesene Inhalte ohne Bearbeitungsrechte nutzen.",
+    "it": "Un ospite, ad esempio uno studente o un ricercatore esterno, ha accesso in sola visualizzazione limitato a contenuti selezionati. Può accedere alle applicazioni DeepUnity ma usare solo i contenuti assegnati senza permessi di modifica.",
+    "fr": "Un invité, par ex. un étudiant ou un chercheur externe, dispose d’un accès de visualisation restreint à des contenus sélectionnés. Il/elle peut se connecter aux applications DeepUnity mais seulement consulter les contenus attribués, sans droit de modification.",
+    "pt": "Um convidado, por exemplo um estudante ou pesquisador externo, tem acesso de visualização restrito a conteúdos selecionados. Pode iniciar sessão nas aplicações DeepUnity, mas apenas consumir conteúdos atribuídos, sem permissões de edição.",
+    "es": "Un invitado, p. ej. un estudiante o investigador externo, tiene acceso de visualización restringido a contenidos seleccionados. Puede iniciar sesión en aplicaciones DeepUnity, pero solo consumir contenido asignado, sin permisos de edición."
+  },
+  "DUMedicalSecretary": {
+    "en": "A medical secretary is correcting typos and spelling mistakes in a radiological report. S/he also listens to the speech recognition recording in order to correct any wrongly recognized text.",
+    "de": "Ein medizinischer Sekretär korrigiert Tipp- und Rechtschreibfehler in radiologischen Befunden. Er/Sie hört zudem die Spracherkennungsaufzeichnung, um falsch erkannte Texte zu korrigieren.",
+    "it": "Un segretario medico corregge refusi ed errori ortografici in un referto radiologico. Inoltre ascolta la registrazione del riconoscimento vocale per correggere il testo riconosciuto in modo errato.",
+    "fr": "Un secrétaire médical corrige les fautes de frappe et d’orthographe dans un compte rendu radiologique. Il/elle écoute aussi l’enregistrement de reconnaissance vocale pour corriger les textes mal reconnus.",
+    "pt": "Um secretário médico corrige erros de digitação e ortografia em um laudo radiológico. Também ouve a gravação de reconhecimento de voz para corrigir texto reconhecido incorretamente.",
+    "es": "Un secretario médico corrige errores tipográficos y ortográficos en un informe radiológico. También escucha la grabación de reconocimiento de voz para corregir texto mal reconocido."
+  },
+  "DUNurse": {
+    "en": "A nurse on a ward who can prepare a radiological order.",
+    "de": "Eine Pflegekraft auf Station, die einen radiologischen Auftrag vorbereiten kann.",
+    "it": "Un infermiere di reparto che può preparare un ordine radiologico.",
+    "fr": "Un infirmier/une infirmière de service pouvant préparer une demande radiologique.",
+    "pt": "Um enfermeiro de enfermaria que pode preparar um pedido radiológico.",
+    "es": "Un enfermero de sala que puede preparar una orden radiológica."
+  },
+  "DUObserver": {
+    "en": "An observer is a guest radiologist needing full viewing access for a limited time, an intern, or a clinician. S/he can see all content of DeepUnity Educational Archive including teaching files, case collections, and average user rating...",
+    "de": "Ein Observer ist z. B. ein Gast-Radiologe mit zeitlich begrenztem Vollzugriff zum Lesen, ein Praktikant oder ein Kliniker. Er/Sie kann alle Inhalte des DeepUnity Educational Archive sehen, einschließlich Teaching Files, Fallsammlungen und durchschnittlicher Nutzerbewertungen.",
+    "it": "Un observer è ad esempio un radiologo ospite con accesso completo in sola visualizzazione per un periodo limitato, un tirocinante o un clinico. Può vedere tutti i contenuti del DeepUnity Educational Archive, inclusi teaching files, raccolte di casi e valutazioni medie degli utenti.",
+    "fr": "Un observer est par exemple un radiologue invité ayant un accès complet en lecture pour une durée limitée, un interne ou un clinicien. Il/elle peut voir tout le contenu de l’archive éducative DeepUnity, y compris les teaching files, collections de cas et évaluations moyennes des utilisateurs.",
+    "pt": "Um observer pode ser um radiologista convidado com acesso completo de visualização por tempo limitado, um interno ou um clínico. Pode ver todo o conteúdo do DeepUnity Educational Archive, incluindo teaching files, coleções de casos e avaliação média dos usuários.",
+    "es": "Un observer puede ser un radiólogo invitado con acceso completo de visualización por tiempo limitado, un interno o un clínico. Puede ver todo el contenido del DeepUnity Educational Archive, incluidos archivos docentes, colecciones de casos y valoración media de usuarios."
+  },
+  "DUPathologist": {
+    "en": "A medical expert who examines tissues, cells, and bodily fluids to diagnose diseases.",
+    "de": "Ein medizinischer Experte, der Gewebe, Zellen und Körperflüssigkeiten zur Krankheitsdiagnose untersucht.",
+    "it": "Un esperto medico che esamina tessuti, cellule e fluidi corporei per diagnosticare malattie.",
+    "fr": "Un expert médical qui examine les tissus, les cellules et les fluides corporels pour diagnostiquer des maladies.",
+    "pt": "Um especialista médico que examina tecidos, células e fluidos corporais para diagnosticar doenças.",
+    "es": "Un experto médico que examina tejidos, células y fluidos corporales para diagnosticar enfermedades."
+  },
+  "DURadiologist": {
+    "en": "A medical specialist who interprets and analyzes medical images such as X-rays, MRIs, and CT scans to diagnose and treat illnesses.",
+    "de": "Ein medizinischer Facharzt, der medizinische Bilder wie Röntgen, MRT und CT interpretiert und analysiert, um Krankheiten zu diagnostizieren und zu behandeln.",
+    "it": "Uno specialista medico che interpreta e analizza immagini mediche come radiografie, risonanze magnetiche e TAC per diagnosticare e trattare malattie.",
+    "fr": "Un spécialiste médical qui interprète et analyse des images médicales (rayons X, IRM, scanners CT) pour diagnostiquer et traiter les maladies.",
+    "pt": "Um especialista médico que interpreta e analisa imagens médicas como raios-X, ressonâncias magnéticas e tomografias para diagnosticar e tratar doenças.",
+    "es": "Un especialista médico que interpreta y analiza imágenes médicas como rayos X, resonancias magnéticas y tomografías para diagnosticar y tratar enfermedades."
+  },
+  "DUReporter": {
+    "en": "A reporter is a radiologist or technologist writing radiological reports to document any findings in the acquired images. The reporter is allowed to sign a report, but still requires another signature from a user belonging to the \"final reporter\" persona",
+    "de": "Ein Reporter ist ein Radiologe oder Technologe, der radiologische Befunde zur Dokumentation von Bildbefunden erstellt. Er/Sie darf den Bericht signieren, benötigt jedoch zusätzlich eine weitere Signatur eines Nutzers mit der Persona \"final reporter\".",
+    "it": "Un reporter è un radiologo o tecnico che redige referti radiologici per documentare i reperti nelle immagini acquisite. Può firmare il referto, ma è comunque necessaria un'ulteriore firma da parte di un utente con la persona \"final reporter\".",
+    "fr": "Un reporter est un radiologue ou technologue qui rédige des comptes rendus radiologiques pour documenter les constatations des images acquises. Il/elle peut signer le rapport, mais une deuxième signature d’un utilisateur de la persona \"final reporter\" est requise.",
+    "pt": "Um reporter é um radiologista ou tecnólogo que escreve laudos radiológicos para documentar achados nas imagens adquiridas. Pode assinar o laudo, mas ainda requer uma segunda assinatura de um usuário da persona \"final reporter\".",
+    "es": "Un reporter es un radiólogo o tecnólogo que redacta informes radiológicos para documentar hallazgos en las imágenes adquiridas. Puede firmar el informe, pero aún requiere una segunda firma de un usuario con la persona \"final reporter\"."
+  },
+  "DUReviewer": {
+    "en": "A radiologist who reviews orders coming from departments external to radiology, specifying protocols, correcting procedures and rejecting wrong orders.",
+    "de": "Ein Radiologe, der aus externen Fachabteilungen kommende Aufträge prüft, Protokolle festlegt, Abläufe korrigiert und fehlerhafte Aufträge ablehnt.",
+    "it": "Un radiologo che revisiona ordini provenienti da reparti esterni alla radiologia, definisce protocolli, corregge procedure e rifiuta ordini errati.",
+    "fr": "Un radiologue qui examine les demandes provenant de services externes à la radiologie, précise les protocoles, corrige les procédures et rejette les demandes incorrectes.",
+    "pt": "Um radiologista que revisa pedidos vindos de departamentos externos à radiologia, define protocolos, corrige procedimentos e rejeita pedidos incorretos.",
+    "es": "Un radiólogo que revisa órdenes procedentes de departamentos externos a radiología, especifica protocolos, corrige procedimientos y rechaza órdenes incorrectas."
+  },
+  "DUScheduler": {
+    "en": "A scheduler schedules and manages appointment booking, can create orders for the appointments.",
+    "de": "Ein Scheduler plant und verwaltet Terminbuchungen und kann Aufträge für Termine erstellen.",
+    "it": "Uno scheduler pianifica e gestisce le prenotazioni degli appuntamenti e può creare ordini per gli appuntamenti.",
+    "fr": "Un scheduler planifie et gère les rendez-vous et peut créer des demandes associées aux rendez-vous.",
+    "pt": "Um scheduler agenda e gerencia marcações de consultas e pode criar pedidos para esses agendamentos.",
+    "es": "Un scheduler programa y gestiona reservas de citas y puede crear órdenes para esas citas."
+  },
+  "DUSpecializedClinician": {
+    "en": "A healthcare professional with advanced expertise in a specific area of medicine. In charge of more specialized tasks than a regular clinician but usually not in charge of reporting.",
+    "de": "Eine medizinische Fachkraft mit vertiefter Expertise in einem spezifischen Fachgebiet. Zuständig für spezialisiertere Aufgaben als ein regulärer Kliniker, jedoch meist nicht für die Befundberichterstellung.",
+    "it": "Un professionista sanitario con competenze avanzate in un'area specifica della medicina. Si occupa di compiti più specialistici rispetto a un clinico standard, ma di norma non della refertazione.",
+    "fr": "Un professionnel de santé disposant d’une expertise avancée dans un domaine médical spécifique. Il/elle prend en charge des tâches plus spécialisées qu’un clinicien standard, mais généralement pas la rédaction des rapports.",
+    "pt": "Um profissional de saúde com expertise avançada em uma área específica da medicina. Responsável por tarefas mais especializadas do que um clínico regular, mas normalmente não pela elaboração de relatórios.",
+    "es": "Un profesional sanitario con experiencia avanzada en un área específica de la medicina. Encargado de tareas más especializadas que un clínico habitual, pero normalmente no de la elaboración de informes."
+  },
+  "DUSystemAdministrator": {
+    "en": "A system administrator can modify any kind of application settings of the overall solution. Like the template designer s/he can also create custom forms and report templates.",
+    "de": "Ein Systemadministrator kann sämtliche Anwendungseinstellungen der Gesamtlösung ändern. Wie ein Template Designer kann er/sie zudem benutzerdefinierte Formulare und Berichtsvorlagen erstellen.",
+    "it": "Un amministratore di sistema può modificare qualsiasi impostazione applicativa dell'intera soluzione. Come il template designer può anche creare moduli personalizzati e modelli di referto.",
+    "fr": "Un administrateur système peut modifier tout type de paramètres applicatifs de la solution globale. Comme le template designer, il/elle peut aussi créer des formulaires personnalisés et des modèles de rapport.",
+    "pt": "Um administrador de sistema pode modificar qualquer configuração da aplicação da solução como um todo. Assim como o template designer, também pode criar formulários personalizados e modelos de relatório.",
+    "es": "Un administrador del sistema puede modificar cualquier tipo de configuración de la aplicación de toda la solución. Al igual que el diseñador de plantillas, también puede crear formularios personalizados y plantillas de informe."
+  },
+  "DUTemplateDesigner": {
+    "en": "A template designer creates custom forms that can then be used by a (final) reporter when writing a radiological report. Furthermore s/he designs report templates which are then applied when a PDF document of the report is generated.",
+    "de": "Ein Template Designer erstellt benutzerdefinierte Formulare, die ein (Final) Reporter beim Schreiben radiologischer Berichte verwenden kann. Außerdem entwirft er/sie Berichtsvorlagen, die bei der PDF-Erstellung des Berichts angewendet werden.",
+    "it": "Un template designer crea moduli personalizzati che possono poi essere utilizzati da un (final) reporter durante la redazione di un referto radiologico. Inoltre progetta modelli di report applicati quando viene generato il PDF del referto.",
+    "fr": "Un template designer crée des formulaires personnalisés pouvant être utilisés par un (final) reporter lors de la rédaction d’un compte rendu radiologique. Il/elle conçoit aussi des modèles de rapport appliqués lors de la génération du PDF.",
+    "pt": "Um template designer cria formulários personalizados que podem ser usados por um (final) reporter ao redigir um laudo radiológico. Além disso, projeta modelos de relatório aplicados quando o PDF do laudo é gerado.",
+    "es": "Un diseñador de plantillas crea formularios personalizados que luego pueden usar los (final) reporters al redactar un informe radiológico. Además, diseña plantillas de informe que se aplican al generar el PDF del informe."
+  },
+  "DUVendorAdmin": {
+    "en": "A vendor admin acts as an application provider administrator with elevated permissions encompassing multiple personas. This role is primarily used during testing and validation phases to verify system functionality and perform acceptance testing.",
+    "de": "Ein Vendor Admin agiert als Administrator des Anwendungsanbieters mit erweiterten Berechtigungen über mehrere Personas hinweg. Diese Rolle wird primär in Test- und Validierungsphasen genutzt, um Systemfunktionen zu prüfen und Abnahmetests durchzuführen.",
+    "it": "Un vendor admin agisce come amministratore del fornitore dell'applicazione con permessi elevati che coprono più personas. Questo ruolo viene usato principalmente nelle fasi di test e validazione per verificare la funzionalità del sistema ed eseguire test di accettazione.",
+    "fr": "Un vendor admin agit comme administrateur du fournisseur applicatif avec des autorisations élevées couvrant plusieurs personas. Ce rôle est principalement utilisé pendant les phases de test et de validation pour vérifier le fonctionnement du système et effectuer des tests d’acceptation.",
+    "pt": "Um vendor admin atua como administrador do fornecedor da aplicação com permissões elevadas abrangendo várias personas. Esse papel é usado principalmente nas fases de teste e validação para verificar funcionalidades do sistema e realizar testes de aceitação.",
+    "es": "Un vendor admin actúa como administrador del proveedor de la aplicación con permisos elevados que abarcan múltiples personas. Este rol se usa principalmente en fases de prueba y validación para verificar la funcionalidad del sistema y realizar pruebas de aceptación."
+  }
+}

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <title>Persona configuration</title>
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --text:#1e2a39; --line:#d9e2ec; --accent:#0d6efd; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Calibri,Arial,sans-serif; color:var(--text); background:var(--bg); }
+    .header { height:64px; background:#0d3b66; color:#fff; display:flex; align-items:center; gap:10px; padding:0 18px; font-size:20px; font-weight:700; position:sticky; top:0; z-index:40; }
+    .hamburger { display:none; background:transparent; border:0; color:#fff; font-size:24px; cursor:pointer; padding:0 6px; }
+    .layout { display:grid; grid-template-columns:260px 1fr; min-height:calc(100vh - 64px); }
+    .sidebar { border-right:1px solid var(--line); background:#fff; padding:14px; position:sticky; top:64px; height:calc(100vh - 64px); overflow:auto; }
+    .content { padding:18px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+    .menu a { display:block; padding:8px 10px; border-radius:8px; color:#0d3b66; text-decoration:none; }
+    .menu a:hover { background:#eef4ff; }
+    .flash { background:#e8f4ff; border:1px solid #b6dcff; padding:10px; border-radius:8px; margin-bottom:10px; }
+    .layout2 { display:flex; gap:14px; align-items:flex-start; }
+    .left { flex:0 0 340px; position:sticky; top:12px; }
+    .right { flex:1; max-height:calc(100vh - 190px); overflow:auto; }
+    .dropzone { min-height:110px; border:1px dashed #9cb3c9; border-radius:8px; padding:8px; background:#fafcff; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; align-content:flex-start; }
+    .role-pool { max-height:58vh; overflow:auto; align-content:flex-start; }
+    .pill { background:#e9f2ff; border:1px solid #b7d3ff; border-radius:999px; padding:3px 8px; font-size:12px; line-height:1.2; display:inline-flex; align-items:center; width:auto; max-width:100%; cursor:grab; user-select:none; }
+    .bucket-wrap { margin:12px 0; padding:10px; border:1px solid #dfe7ef; border-radius:10px; background:#fbfdff; }
+    .role-search { width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; margin:8px 0 10px 0; }
+    button { background:#fff; color:#0d3b66; border:1px solid #d9e2ec; border-radius:8px; padding:10px 14px; cursor:pointer; }
+    button:hover{background:#eef4ff;}
+    .muted { color:#5f7185; }
+    .small-btn{background:#eef4ff;color:#0d3b66;border:1px solid #cfe0ff;border-radius:7px;padding:4px 8px;font-size:12px;cursor:pointer}
+    .desc-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:90}
+    .desc-modal.open{display:flex}
+    .desc-box{background:#fff;border:1px solid #d9e2ec;border-radius:10px;padding:14px;max-width:680px;width:min(92vw,680px)}
+    .desc-title{margin:0 0 8px 0}
+    .desc-text{white-space:pre-wrap;line-height:1.4}
+    .hover-tip{position:fixed;z-index:95;display:none;max-width:420px;background:#0d3b66;color:#fff;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.35;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none;white-space:pre-wrap}
+    .overlay{display:none}
+    @media (max-width:980px){ .hamburger{display:inline-block} .layout{grid-template-columns:1fr;} .sidebar{position:fixed;left:-280px;top:64px;width:260px;height:calc(100vh - 64px);z-index:30;border-right:1px solid var(--line);border-bottom:0;transition:left .2s ease;} .sidebar.open{left:0;} .overlay{display:block;position:fixed;inset:64px 0 0 0;background:rgba(0,0,0,.35);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s ease;} .overlay.show{opacity:1;pointer-events:auto;} .layout2{display:block;} .left{position:static;width:auto;margin-bottom:12px;} .right{max-height:none;overflow:visible;} }
+  </style>
+</head>
+<body>
+  {% set page_title_default = 'Persona-Konfiguration' %}
+  {% set header_login_href = '/' %}
+  {% include '_header.html' %}
+  <div class="layout">
+    {% include '_sidebar.html' %}
+    <div class="overlay" id="overlay"></div>
+    <main class="content">
+      <div class="card muted" data-i18n="personasHint">Links alle Rollen aus Spalte A, rechts Persona-Zuweisungen.</div>
+
+      <div class="card" style="background:#f7fbff;">
+        {% if not can_edit %}<div class="flash" style="background:#fff7e6;border-color:#f7b5b5;color:#b42318;font-weight:700;" data-i18n="readonlyMode">Nur lesender Modus: Änderungen sind nur für Admin möglich.</div>{% endif %}
+        <form method="post" action="/config-personas" id="modeForm">
+          <input type="hidden" name="action" value="set_mode">
+          <label><strong data-i18n="permMode">Permission mode</strong></label>
+          <select name="permission_mode" onchange="this.form.submit()" {% if not can_edit %}disabled{% endif %}>
+            <option value="auto" {% if (permission_mode or 'auto') == 'auto' %}selected{% endif %} data-i18n="perm.auto">Auto</option>
+            <option value="old" {% if permission_mode == 'old' %}selected{% endif %} data-i18n="perm.old">Force old</option>
+            <option value="new" {% if permission_mode == 'new' %}selected{% endif %} data-i18n="perm.new">Force new</option>
+          </select>
+        </form>
+      </div>
+
+      {% with messages = get_flashed_messages() %}{% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}{% endwith %}
+
+      <form method="post" action="/config-personas" id="personaForm">
+        <input type="hidden" name="action" value="save_personas">
+        <input type="hidden" name="permission_mode" value="{{ permission_mode or 'auto' }}">
+        <input type="hidden" name="assignments_json" id="assignments_json" value="">
+
+        <div class="layout2">
+          <div class="card left">
+            <strong data-i18n="rolesColA">DU Berechtigungsrollen</strong>
+            <input id="roleSearch" class="role-search" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilter" />
+            <div id="rolePool" class="dropzone role-pool" data-zone="pool">
+              {% for role in keycloak_roles %}<div class="pill" draggable="{{ 'true' if can_edit else 'false' }}" data-role="{{ role }}">{{ role }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="card right">
+            {% for pname, assigned in personas.items() %}
+              <div class="bucket-wrap">
+                <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px 0;">
+                  <h3 style="margin:0;">{{ pname }}</h3>
+                  <button type="button" class="small-btn show-desc" style="margin-left:auto;" data-persona="{{ pname }}" data-i18n="showDesc">Erklärung anzeigen</button>
+                </div>
+                <div class="dropzone persona-bucket" data-persona="{{ pname }}">
+                  {% for role in assigned %}<div class="pill" draggable="{{ 'true' if can_edit else 'false' }}" data-role="{{ role }}">{{ role }}</div>{% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if can_edit %}<button type="submit" data-i18n="save">Speichern</button>{% else %}<button type="button" data-i18n="save" disabled style="opacity:.6;cursor:not-allowed;">Speichern</button>{% endif %}
+      </form>
+    </main>
+  </div>
+
+  <div id="descModal" class="desc-modal" aria-hidden="true">
+    <div class="desc-box">
+      <h3 id="descTitle" class="desc-title">Persona</h3>
+      <div id="descText" class="desc-text"></div>
+      <br><button type="button" id="descCloseBtn" data-i18n="close">Schließen</button>
+    </div>
+  </div>
+  <div id="hoverTip" class="hover-tip" aria-hidden="true"></div>
+
+  <script>
+    (function(){
+      const I18N = {
+        de: { title:'Persona-Konfiguration', menu:'Menü / Navigation', 'nav.main':'Hauptseite', 'nav.guide':'Anleitung / Guide', 'nav.personaConfig':'Persona-Konfiguration', 'nav.roles':'Rollenliste bearbeiten', 'nav.personaNames':'Persona-Liste bearbeiten', 'nav.i18n':'Lokalisierungstexte bearbeiten', 'nav.changelog':'Changelog', personasHint:'Links alle Rollen aus Spalte A, rechts Persona-Zuweisungen.', permMode:'Permission-Modus', 'perm.auto':'Auto', 'perm.old':'Force old', 'perm.new':'Force new', rolesColA:'DU Berechtigungsrollen', rolesFilter:'Rollen filtern...', save:'Speichern', showDesc:'Erklärung anzeigen', close:'Schließen', noDesc:'Keine Erklärung vorhanden.', readonlyMode:'Nur lesender Modus: Änderungen sind nur für Admin möglich.' },
+        en: { title:'Persona configuration', menu:'Menu / Navigation', 'nav.main':'Main page', 'nav.guide':'Guide', 'nav.personaConfig':'Persona configuration', 'nav.roles':'Edit roles list', 'nav.personaNames':'Edit persona names', 'nav.i18n':'Edit localization texts', 'nav.changelog':'Changelog', personasHint:'All roles from column A on the left, persona assignments on the right.', permMode:'Permission mode', 'perm.auto':'Auto', 'perm.old':'Force old', 'perm.new':'Force new', rolesColA:'DU Berechtigungsrollen', rolesFilter:'Filter roles...', save:'Save', showDesc:'Show description', close:'Close', noDesc:'No description available.', readonlyMode:'Read-only mode: changes are only possible for admin.' },
+        it: { title:'Configurazione persona', menu:'Menu / Navigazione', 'nav.main':'Pagina principale', 'nav.guide':'Guida', 'nav.personaConfig':'Configurazione persona', 'nav.roles':'Modifica elenco ruoli', 'nav.personaNames':'Modifica elenco persona', 'nav.i18n':'Modifica testi localizzazione', 'nav.changelog':'Changelog', personasHint:'A sinistra tutti i ruoli della colonna A, a destra le assegnazioni persona.', permMode:'Modalità permessi', 'perm.auto':'Auto', 'perm.old':'Forza old', 'perm.new':'Forza new', rolesColA:'DU Berechtigungsrollen', rolesFilter:'Filtra ruoli...', save:'Salva', showDesc:'Mostra descrizione', close:'Chiudi', noDesc:'Nessuna descrizione disponibile.', readonlyMode:'Modalità sola lettura: le modifiche sono consentite solo all\'admin.' },
+        fr: { title:'Configuration des personas', menu:'Menu / Navigation', 'nav.main':'Page principale', 'nav.guide':'Guide', 'nav.personaConfig':'Configuration des personas', 'nav.roles':'Modifier la liste des rôles', 'nav.personaNames':'Modifier la liste des personas', 'nav.i18n':'Modifier les textes de localisation', 'nav.changelog':'Changelog', personasHint:'À gauche tous les rôles de la colonne A, à droite les affectations de personas.', permMode:'Mode des permissions', 'perm.auto':'Auto', 'perm.old':'Forcer old', 'perm.new':'Forcer new', rolesColA:'DU Berechtigungsrollen', rolesFilter:'Filtrer les rôles...', save:'Enregistrer', showDesc:'Afficher la description', close:'Fermer', noDesc:'Aucune description disponible.', readonlyMode:'Mode lecture seule : les modifications sont possibles uniquement pour l\'admin.' },
+        pt: { title:'Configuração de personas', menu:'Menu / Navegação', 'nav.main':'Página principal', 'nav.guide':'Guia', 'nav.personaConfig':'Configuração de personas', 'nav.roles':'Editar lista de roles', 'nav.personaNames':'Editar lista de personas', 'nav.i18n':'Editar textos de localização', 'nav.changelog':'Changelog', personasHint:'À esquerda todos os roles da coluna A, à direita as atribuições de persona.', permMode:'Modo de permissões', 'perm.auto':'Auto', 'perm.old':'Forçar old', 'perm.new':'Forçar new', rolesColA:'DU Berechtigungsrollen', rolesFilter:'Filtrar roles...', save:'Salvar', showDesc:'Mostrar descrição', close:'Fechar', noDesc:'Nenhuma descrição disponível.', readonlyMode:'Modo somente leitura: alterações só são possíveis para admin.' },
+        es: { title:'Configuración de personas', menu:'Menú / Navegación', 'nav.main':'Página principal', 'nav.guide':'Guía', 'nav.personaConfig':'Configuración de personas', 'nav.roles':'Editar lista de roles', 'nav.personaNames':'Editar lista de personas', 'nav.i18n':'Editar textos de localização', 'nav.changelog':'Changelog', personasHint:'A la izquierda todos los roles de la columna A; a la derecha asignaciones de persona.', permMode:'Modo de permisos', 'perm.auto':'Auto', 'perm.old':'Forzar old', 'perm.new':'Forzar new', rolesColA:'DU Berechtigungsrollen', rolesFilter:'Filtrar roles...', save:'Guardar', showDesc:'Mostrar descripción', close:'Cerrar', noDesc:'No hay descripción disponible.', readonlyMode:'Modo de solo lectura: los cambios solo son posibles para admin.' }
+        
+      };
+      const applyLang = (lang) => {
+        const dict = I18N[lang] || I18N.de;
+        document.querySelectorAll('[data-i18n]').forEach((el)=>{ const key=el.dataset.i18n; if(dict[key]) el.textContent=dict[key]; });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((el)=>{ const key=el.dataset.i18nPlaceholder; if(dict[key]) el.placeholder=dict[key]; });
+        localStorage.setItem('rolemapper_lang', lang); document.cookie='rolemapper_lang='+encodeURIComponent(lang)+'; path=/; max-age=31536000; SameSite=Lax';
+      };
+      const langSwitch = document.getElementById('langSwitch');
+      const savedLang = localStorage.getItem('rolemapper_lang') || 'de';
+      if(langSwitch){ langSwitch.value = savedLang; langSwitch.addEventListener('change', ()=>applyLang(langSwitch.value)); }
+      applyLang(savedLang);
+
+      const canEdit = {{ 'true' if can_edit else 'false' }};
+      let dragged = null;
+      if (canEdit) {
+        document.addEventListener('dragstart', (e) => { const el=e.target.closest('.pill'); if(el) dragged=el; });
+        document.querySelectorAll('.dropzone').forEach((zone) => {
+          zone.addEventListener('dragover', (e)=>e.preventDefault());
+          zone.addEventListener('drop', (e)=>{ e.preventDefault(); if(!dragged) return; const fromPool=dragged.parentElement && dragged.parentElement.dataset.zone==='pool'; const item=fromPool?dragged.cloneNode(true):dragged; item.draggable=true; zone.appendChild(item); const role=item.dataset.role; const siblings=[...zone.querySelectorAll('.pill')].filter(p=>p.dataset.role===role); if(siblings.length>1){ if(zone.dataset.zone==='pool'){ item.remove(); } else { siblings.slice(1).forEach(x=>x.remove()); } } });
+        });
+        document.addEventListener('dblclick', (e)=>{ const el=e.target.closest('.pill'); if(!el) return; const parent=el.parentElement; if(parent && parent.classList.contains('persona-bucket')) el.remove(); });
+      }
+      const roleSearch=document.getElementById('roleSearch');
+      if(roleSearch){ roleSearch.addEventListener('input', ()=>{ const q=roleSearch.value.trim().toLowerCase(); document.querySelectorAll('#rolePool .pill').forEach((pill)=>{ const t=(pill.dataset.role||pill.textContent||'').toLowerCase(); pill.style.display=!q||t.includes(q)?'':'none'; }); }); }
+      const form=document.getElementById('personaForm');
+      if (canEdit) {
+        form.addEventListener('submit', ()=>{ const data={}; document.querySelectorAll('.persona-bucket[data-persona]').forEach((bucket)=>{ data[bucket.dataset.persona]=[...new Set(Array.from(bucket.querySelectorAll('.pill')).map(p=>p.dataset.role))]; }); document.getElementById('assignments_json').value=JSON.stringify(data); });
+      }
+
+      const personaDescriptions = {{ persona_descriptions | tojson }};
+      const descModal = document.getElementById('descModal');
+      const descTitle = document.getElementById('descTitle');
+      const descText = document.getElementById('descText');
+      const descCloseBtn = document.getElementById('descCloseBtn');
+      const hoverTip = document.getElementById('hoverTip');
+      const getCurrentLang = () => (langSwitch && langSwitch.value) || (localStorage.getItem('rolemapper_lang') || 'de');
+      const getPersonaDesc = (persona) => {
+        const lang = getCurrentLang();
+        const dict = I18N[lang] || I18N.de;
+        const per = personaDescriptions[persona] || {};
+        return per[lang] || per.de || per.en || dict.noDesc || 'No description available.';
+      };
+
+      document.querySelectorAll('.show-desc').forEach((btn)=>{
+        btn.addEventListener('click', ()=>{
+          const persona = btn.dataset.persona || '';
+          const text = getPersonaDesc(persona);
+          if (descTitle) descTitle.textContent = persona;
+          if (descText) descText.textContent = text;
+          if (descModal) { descModal.classList.add('open'); descModal.setAttribute('aria-hidden','false'); }
+        });
+
+        btn.addEventListener('mouseenter', (e)=>{
+          const persona = btn.dataset.persona || '';
+          const text = getPersonaDesc(persona);
+          btn.title = text;
+          if (hoverTip) {
+            hoverTip.textContent = text;
+            hoverTip.style.display = 'block';
+            hoverTip.setAttribute('aria-hidden','false');
+            hoverTip.style.left = (e.clientX + 14) + 'px';
+            hoverTip.style.top = (e.clientY + 14) + 'px';
+          }
+        });
+        btn.addEventListener('mousemove', (e)=>{
+          if (hoverTip && hoverTip.style.display === 'block') {
+            hoverTip.style.left = (e.clientX + 14) + 'px';
+            hoverTip.style.top = (e.clientY + 14) + 'px';
+          }
+        });
+        btn.addEventListener('mouseleave', ()=>{
+          if (hoverTip) {
+            hoverTip.style.display = 'none';
+            hoverTip.setAttribute('aria-hidden','true');
+          }
+        });
+      });
+      if (descCloseBtn && descModal) {
+        descCloseBtn.addEventListener('click', ()=>{ descModal.classList.remove('open'); descModal.setAttribute('aria-hidden','true'); });
+      }
+      if (descModal) {
+        descModal.addEventListener('click', (e)=>{ if(e.target===descModal){ descModal.classList.remove('open'); descModal.setAttribute('aria-hidden','true'); } });
+      }
+
+      const menuBtn = document.getElementById('hamburgerBtn');
+      const sidebar = document.querySelector('.sidebar');
+      const overlay = document.getElementById('overlay');
+      const closeMenu = () => { sidebar && sidebar.classList.remove('open'); overlay && overlay.classList.remove('show'); };
+      if(menuBtn && sidebar && overlay){
+        menuBtn.addEventListener('click', ()=>{ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); });
+        overlay.addEventListener('click', closeMenu);
+        window.addEventListener('resize', ()=>{ if(window.innerWidth > 980) closeMenu(); });
+      }
+    })();
+  </script>
+
+  <script>
+    (function(){
+      try {
+        if (window.location.pathname !== "/") {
+          history.replaceState({}, "", "/");
+        }
+      } catch(_) {}
+    })();
+  </script>
+</body>
+</html>

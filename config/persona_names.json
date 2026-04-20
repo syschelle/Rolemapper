@@ -1,0 +1,19 @@
+[
+  "DUClinicalDataAdministrator",
+  "DUClinicalWorkflowManager",
+  "DUClinician",
+  "DUFinalReporter",
+  "DUGuest",
+  "DUMedicalSecretary",
+  "DUNurse",
+  "DUObserver",
+  "DUPathologist",
+  "DURadiologist",
+  "DUReporter",
+  "DUReviewer",
+  "DUScheduler",
+  "DUSpecializedClinician",
+  "DUSystemAdministrator",
+  "DUTemplateDesigner",
+  "DUVendorAdmin"
+]

@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <title>Rolemapper</title>
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --text:#1e2a39; --line:#d9e2ec; --accent:#0d6efd; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Calibri,Arial,sans-serif; color:var(--text); background:var(--bg); }
+    .header { height:64px; background:#0d3b66; color:#fff; display:flex; align-items:center; gap:10px; padding:0 18px; font-size:20px; font-weight:700; position:sticky; top:0; z-index:40; }
+    .hamburger { display:none; background:transparent; border:0; color:#fff; font-size:24px; cursor:pointer; padding:0 6px; }
+    .layout { display:grid; grid-template-columns:260px 1fr; min-height:calc(100vh - 64px); }
+    .sidebar { border-right:1px solid var(--line); background:#fff; padding:14px; position:sticky; top:64px; height:calc(100vh - 64px); overflow:auto; }
+    .content { padding:18px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+    .grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; }
+    .muted { color:#5f7185; }
+    a { color:#0d3b66; text-decoration:none; }
+    .menu a { display:block; padding:8px 10px; border-radius:8px; line-height:1.2; margin:2px 0; }
+    .menu a:hover { background:#eef4ff; }
+    button { background:#fff; color:#0d3b66; border:1px solid #d9e2ec; border-radius:8px; padding:10px 14px; cursor:pointer; }
+    button:hover{background:#eef4ff;}
+    button:disabled{opacity:.55;cursor:not-allowed;background:#f3f4f6;color:#94a3b8;border-color:#d1d5db;}
+    .entry-locked-note{margin-top:8px;color:#9b1c1c;font-size:12px;}
+    .bulk-assign-zone{margin:0 0 10px 0;padding:8px 10px;border:1px dashed #f59e0b;border-radius:8px;background:#fffbeb;color:#92400e;font-size:13px;}
+    .persona-tooltip{position:fixed;z-index:2000;max-width:420px;padding:8px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#0f172a;color:#e2e8f0;font-size:12px;line-height:1.35;box-shadow:0 6px 16px rgba(2,6,23,.35);pointer-events:none;display:none;white-space:normal;}
+    .roles-modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:120;}
+    .roles-modal.open{display:flex;}
+    .roles-modal-box{background:#fff;border:1px solid #d9e2ec;border-radius:12px;max-width:min(90vw,760px);width:760px;max-height:80vh;overflow:auto;padding:14px;}
+    table { border-collapse:collapse; width:100%; }
+    th,td { border:1px solid #dfe7ef; padding:8px; font-size:14px; }
+    th { background:#f0f5fb; }
+    .flash { background:#e8f4ff; border:1px solid #b6dcff; padding:10px; border-radius:8px; margin-bottom:10px; }
+    .dropzone { min-height:110px; border:1px dashed #9cb3c9; border-radius:8px; padding:8px; background:#fafcff; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; align-content:flex-start; }
+    .pill { background:#e9f2ff; border:1px solid #b7d3ff; border-radius:999px; padding:3px 8px; font-size:12px; line-height:1.2; display:inline-flex; align-items:center; gap:6px; width:auto; max-width:100%; cursor:grab; user-select:none; }
+    .pill-del-btn{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid #f1b5b5;background:#fff5f5;color:#b42318;font-size:10px;line-height:1;cursor:pointer;user-select:none;flex:0 0 auto;}
+    .pill-del-btn:hover{background:#ffe3e3;color:#7f1d1d;}
+    .pill[data-kind="persona"] { background:#e9f9ef; border-color:#9ed6af; color:#1f6b3a; }
+    .pill.unknown { color:#b42318; border-color:#f7b5b5; background:#fff5f5; }
+    .pool-item{display:inline-flex;align-items:center;gap:6px;max-width:100%;}
+    .pool-actions{display:inline-flex;gap:4px;}
+    .role-action-btn{padding:2px 6px;font-size:11px;border-radius:6px;}
+    .source-action-btn{padding:2px 8px;font-size:11px;border-radius:6px;}
+    .source-action-spacer{flex:1 1 auto;min-width:12px;}
+    .source-del-btn{margin-left:auto;background:#fff5f5;color:#9b1c1c;border:1px solid #f3c2c2;}
+    .source-del-btn:hover{background:#ffe3e3;color:#7f1d1d;}
+    .mapping-card { position:sticky; top:76px; z-index:10; }
+    .mapping-layout { display:flex; gap:14px; align-items:flex-start; }
+    .mapping-left { flex:0 0 320px; position:sticky; top:12px; max-height:calc(100vh - 210px); overflow:auto; }
+    .mapping-right { flex:1; max-height:calc(100vh - 210px); overflow:auto; }
+    textarea { width:100%; min-height:90px; }
+    .overlay{display:none}
+    .title-wrap{display:inline-flex; align-items:baseline; gap:0; white-space:nowrap;}
+    .insider-link{font-size:20px; font-weight:700; opacity:1; margin-left:0; color:#fff; text-decoration:none; cursor:pointer; display:inline; line-height:1;}
+    .insider-modal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:90;}
+    .insider-modal.open{display:flex;}
+    .insider-box{background:#fff; color:#1e2a39; border-radius:12px; border:1px solid #d9e2ec; padding:16px; width:min(92vw,520px); box-shadow:0 10px 30px rgba(0,0,0,.18);}
+    .insider-box h4{margin:0 0 8px 0;}
+    .insider-close{margin-top:10px;}
+    @media (max-width: 980px) {
+      .hamburger{display:inline-block}
+      .layout { grid-template-columns:1fr; }
+      .sidebar { position:fixed; left:-280px; top:64px; width:260px; height:calc(100vh - 64px); z-index:30; border-right:1px solid var(--line); border-bottom:0; transition:left .2s ease; }
+      .sidebar.open{ left:0; }
+      .overlay{display:block; position:fixed; inset:64px 0 0 0; background:rgba(0,0,0,.35); z-index:20; opacity:0; pointer-events:none; transition:opacity .2s ease;}
+      .overlay.show{opacity:1; pointer-events:auto;}
+      .grid { grid-template-columns:1fr; }
+      .mapping-card{position:static;}
+      .mapping-layout { display:block; }
+      .mapping-left { position:static; width:auto; margin-bottom:12px; }
+      .mapping-right { max-height:none; overflow:visible; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header"><button class="hamburger" id="hamburgerBtn" aria-label="Menü">☰</button><span class="title-wrap"><span data-i18n="title">LDAP/ORBIS → Keycloak Rolemappe</span><a id="insiderHintLink" class="insider-link" title="Insider">r</a></span>{% if auth_admin or auth_i18n %}<span style="margin-left:auto;font-size:13px;opacity:.95;"><span class="role-label">Rolle:</span> <span class="role-value" data-role="{% if auth_admin %}admin{% else %}localizer{% endif %}">{% if auth_admin %}Admin{% else %}Lokalisierer{% endif %}</span></span><a href="/logout" id="openLoginBtn" style="font-size:13px;color:#fff;text-decoration:underline;" data-i18n="logout">Logout</a>{% else %}<a href="/login" id="openLoginBtn" style="margin-left:auto;font-size:13px;color:#fff;text-decoration:underline;" data-i18n="login">Login</a>{% endif %}<span style="font-size:13px;opacity:.9;">v{{ app_version }}</span>{% if show_test_banner %}<span style="font-size:12px;color:#ffb3b3;background:#7a0000;padding:3px 8px;border-radius:6px;">Testversion not for production</span>{% endif %}<select id="langSwitch" style="margin-left:10px;"><option value="de">DE</option><option value="en">EN</option><option value="it">IT</option><option value="fr">FR</option><option value="pt">PT</option><option value="es">ES</option></select></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="card menu">
+        <strong data-i18n="menu">Menü / Navigation</strong>
+        <a href="/" data-i18n="nav.main">Hauptseite</a>
+        <a href="/admin-mappings" data-i18n="nav.serverMappings">Server-Mappings</a>
+        <a href="/guide" data-i18n="nav.guide">Anleitung / Guide</a>
+        <a href="/config-personas" data-i18n="nav.personaConfig">Persona-Konfiguration</a>
+        {% if auth_admin %}
+        <a href="/config-persona-names" data-i18n="nav.personaNames">Persona-Liste bearbeiten</a>
+        <a href="/config-roles" data-i18n="nav.roles">Rollenliste bearbeiten</a>
+        <a href="/config-i18n" data-i18n="nav.i18n">Lokalisierungstexte bearbeiten</a>
+        <a href="/config-auth">Konfiguration</a>
+        {% elif auth_i18n %}
+        <a href="/config-roles" data-i18n="nav.roles">Rollenliste bearbeiten</a>
+        <a href="/config-i18n" data-i18n="nav.i18n">Lokalisierungstexte bearbeiten</a>
+        {% endif %}
+        <a href="/changelog" data-i18n="nav.changelog">Changelog</a>
+      </div>
+    </aside>
+    <div class="overlay" id="overlay"></div>
+
+    <main class="content">
+      <div class="card muted" data-i18n="indexHint">CSV hochladen oder Testmodus nutzen, Personas zuordnen, TXT herunterladen.</div>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}{% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}{% endif %}
+      {% endwith %}
+
+      {% if unmapped_warning_roles %}
+      <div class="flash" style="background:#fff7ed;border-color:#fdba74;">
+        <strong data-i18n="warn.unmappedHeader">Hinweis: Folgende AD/ORBIS-Rollen haben kein Mapping und erscheinen daher nicht in der TXT:</strong>
+        {% if unmapped_warning_filename %}<div style="margin-top:6px;" class="muted"><span data-i18n="warn.generatedFile">Erzeugte Datei:</span> {{ unmapped_warning_filename }}</div>{% endif %}
+        <ul style="margin:8px 0 0 18px;">
+          {% for r in unmapped_warning_roles %}<li>{{ r }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% set entry_locked = source_roles and (source_roles|length > 0) %}
+      <div class="grid">
+        <div class="card">
+          <h3 data-i18n="sec.uploadTitle">mapping.txt importieren</h3>
+          <p class="muted" style="margin-top:0;" data-i18n="sec.uploadHint">Hinweis: Lade eine bestehende mapping.txt hoch, um Quellrollen aus den SOURCE-Einträgen zu übernehmen.</p>
+          <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="mapping_upload">
+            <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+            <input type="file" id="mapping_file" name="mapping_file" accept=".txt,text/plain" required style="display:none;" {% if entry_locked %}disabled{% endif %}>
+            <button type="button" id="filePickBtn" data-i18n="chooseFile" {% if entry_locked %}disabled{% endif %}>Datei auswählen</button>
+            <span id="fileNameLabel" data-i18n="noFile" style="margin-left:8px;">Keine Datei ausgewählt</span><br><br>
+            <button type="submit" data-i18n="btn.validate" {% if entry_locked %}disabled{% endif %}>Importieren & Zuordnung vorbereiten</button>
+          </form>
+          {% if entry_locked %}<div class="entry-locked-note" data-i18n="entryLocked">Einstieg gesperrt: Mapping ist bereits geladen. Bitte zuerst aktuellen Vorgang abschließen.</div>{% endif %}
+        </div>
+
+        <div class="card">
+          <h3 data-i18n="sec.testTitle">Externe Authentifizierungsrollen</h3>
+          <form method="post">
+            <input type="hidden" name="action" value="manual_test">
+            <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+            <textarea id="manual_roles" name="manual_roles" {% if entry_locked %}disabled{% endif %}></textarea><br><br>
+            <button type="button" id="fillSampleBtn" data-i18n="btn.fillSample" {% if entry_locked %}disabled{% endif %}>Beispielrollen einfügen</button>
+            <button type="submit" data-i18n="btn.createTest" {% if entry_locked %}disabled{% endif %}>Mapping beginnen</button>
+          </form>
+          {% if entry_locked %}<div class="entry-locked-note" data-i18n="entryLocked">Einstieg gesperrt: Mapping ist bereits geladen. Bitte zuerst aktuellen Vorgang abschließen.</div>{% endif %}
+        </div>
+
+        <div class="card">
+          <h3 data-i18n="sec.dirtyTitle">Dirty Keycloak importieren</h3>
+          <form method="post">
+            <input type="hidden" name="action" value="dirty_keycloak_import">
+            <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+            <textarea name="dirty_keycloak_text" placeholder="RoleMapper_<SOURCE>_to_<TARGET> ..." data-i18n-placeholder="dirtyPh" {% if entry_locked %}disabled{% endif %}></textarea><br><br>
+            <button type="submit" data-i18n="btn.dirtyImport" {% if entry_locked %}disabled{% endif %}>Dirty Keycloak importieren</button>
+          </form>
+          {% if entry_locked %}<div class="entry-locked-note" data-i18n="entryLocked">Einstieg gesperrt: Mapping ist bereits geladen. Bitte zuerst aktuellen Vorgang abschließen.</div>{% endif %}
+        </div>
+
+        <div class="card">
+          <h3 data-i18n="sec.loadTitle">ad-ds oder orbis-ds code</h3>
+          <form method="post">
+            <input type="hidden" name="action" value="mapping_plus_load">
+            <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+            <textarea name="mapping_raw_text" placeholder="Inhalt der orbis-ds.xml oder ad-ds.xml einfügen" data-i18n-placeholder="mappingRawPh" style="width:100%;min-height:120px;margin-bottom:8px;padding:8px;border:1px solid #cbd5e1;border-radius:8px;" {% if entry_locked %}disabled{% endif %}></textarea>
+            <button type="submit" data-i18n="btn.parseMappingText" {% if entry_locked %}disabled{% endif %}>Text parsen & laden</button>
+          </form>
+          {% if entry_locked %}<div class="entry-locked-note" data-i18n="entryLocked">Einstieg gesperrt: Mapping ist bereits geladen. Bitte zuerst aktuellen Vorgang abschließen.</div>{% endif %}
+        </div>
+      </div>
+
+      {% if preview and headers %}
+      <div class="card">
+        <strong>Vorschau (erste 10 Zeilen)</strong>
+        <table><thead><tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in preview %}<tr>{% for h in headers %}<td>{{ row[h] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+      </div>
+      {% endif %}
+
+      <div class="card mapping-card">
+        {% if source_roles and personas %}
+        <form method="post" id="assignForm">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <h3 data-i18n="sec.mappingTitle" style="margin:0;">Mapping</h3>
+              <button type="button" id="freshStartBtn" data-i18n="btn.freshStart" style="background:#fff7ed;border-color:#fdba74;color:#9a3412;">Neu beginnen</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <input id="mappingCountryInput" type="hidden" name="mapping_plus_country" value="{{ mapping_plus_country or '' }}">
+              <input id="mappingPostalInput" type="hidden" name="mapping_plus_postal_code" value="{{ mapping_plus_postal_code or '' }}">
+              <input id="mappingCityInput" type="hidden" name="mapping_plus_city" value="{{ mapping_plus_city or '' }}">
+              <input id="mappingCustomerNoInput" type="hidden" name="mapping_plus_customer_no" value="{{ mapping_plus_customer_no or '' }}">
+              <input id="mappingSideInput" type="hidden" name="mapping_plus_side" value="{{ mapping_plus_side or '' }}">
+              <input id="mappingCustomerInput" type="hidden" name="mapping_plus_customer" value="{{ mapping_plus_customer or '' }}">
+            </div>
+          </div>
+          <input type="hidden" name="action" value="generate_assigned">
+          <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+          <input type="hidden" name="permission_mode" value="{{ permission_mode or 'auto' }}">
+          <input type="hidden" name="show_role_pool" value="{{ '1' if show_role_pool else '0' }}">
+          <input type="hidden" name="mapping_plus_code" value="{{ mapping_plus_code or '' }}">
+          <input type="hidden" name="mapping_loaded_from_server" value="{{ '1' if mapping_loaded_from_server else '0' }}">
+          <input type="hidden" name="mapping_client_ts" id="mapping_client_ts" value="">
+          <input type="hidden" name="assignments_json" id="assignments_json" value="">
+
+          <div class="mapping-layout">
+            <div class="card mapping-left">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <strong>Personas</strong>
+                <button type="button" id="togglePersonaBtn" style="padding:4px 8px;font-size:12px;" title="Personas ein-/ausklappen">▾</button>
+              </div>
+              <div id="personaSection">
+                <input id="personaSearch" type="text" placeholder="Personas filtern..." data-i18n-placeholder="personaFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
+                <div id="personaPool" class="dropzone" data-zone="pool-persona">
+                  {% for pname in personas.keys()|sort %}<div class="pill" draggable="true" data-role="{{ pname }}" data-kind="persona" data-known="1" data-persona-roles="{{ (personas.get(pname, [])|join(', '))|e }}">{{ pname }}</div>{% endfor %}
+                </div>
+              </div>
+              <br>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <strong data-i18n="rolesColA">DU Berechtigungsrollen</strong>
+                <button type="button" id="toggleRolesBtn" style="padding:4px 8px;font-size:12px;" title="DU Berechtigungsrollen ein-/ausklappen">▾</button>
+              </div>
+              <div id="rolesSection">
+                <input id="rolesSearch" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
+                <div id="rolePool" class="dropzone" data-zone="pool-role">
+                  {% for r in keycloak_roles %}<div class="pill" draggable="true" data-role="{{ r }}" data-kind="role" data-known="1">{{ r }}</div>{% endfor %}
+                </div>
+              </div>
+
+              <br>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <strong data-i18n="customRoles">Individuelle Rollen</strong>
+                <button type="button" id="toggleCustomBtn" style="padding:4px 8px;font-size:12px;" title="Individuelle Rollen ein-/ausklappen">▾</button>
+              </div>
+              <div id="customSection">
+                <textarea id="customRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" data-i18n-placeholder="customRolesPh" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
+                <button type="button" id="addCustomRolesBtn" data-i18n="addCustomRoles">Rollen hinzufügen</button>
+                <div id="customRolePool" class="dropzone" data-zone="pool-custom" style="margin-top:8px;"></div>
+              </div>
+            </div>
+            <div class="card mapping-right">
+              <div class="muted" style="margin-bottom:8px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+                <span><span data-i18n="countryLabel">Land:</span> <strong id="countryPreview" class="meta-inline-view">{{ mapping_plus_country or '-' }}</strong><select id="metaEditCountry" class="meta-inline-edit" style="display:none;min-width:58px;width:58px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"><option value="" data-i18n="countryPh">Land</option><option value="AT">AT</option><option value="BE">BE</option><option value="BR">BR</option><option value="CH">CH</option><option value="DE">DE</option><option value="EN">EN</option><option value="FR">FR</option><option value="LU">LU</option></select></span>
+                <span><span data-i18n="postalLabel">PLZ:</span> <strong id="postalPreview" class="meta-inline-view">{{ mapping_plus_postal_code or '-' }}</strong><input id="metaEditPostal" class="meta-inline-edit" type="text" placeholder="PLZ" data-i18n-placeholder="postalPh" style="display:none;min-width:60px;width:60px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
+                <span><span data-i18n="cityLabel">Stadt:</span> <strong id="cityPreview" class="meta-inline-view">{{ mapping_plus_city or '-' }}</strong><input id="metaEditCity" class="meta-inline-edit" type="text" placeholder="Stadt" data-i18n-placeholder="cityPh" style="display:none;min-width:120px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
+                <span><span data-i18n="customerNoLabel">Kundennummer:</span> <strong id="customerNoPreview" class="meta-inline-view">{{ mapping_plus_customer_no or '-' }}</strong><input id="metaEditCustomerNo" class="meta-inline-edit" type="text" placeholder="Kundennummer" data-i18n-placeholder="customerNoPh" style="display:none;min-width:72px;width:72px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
+                <span><span data-i18n="sideLabel">Standort:</span> <strong id="sidePreview" class="meta-inline-view">{{ mapping_plus_side or '-' }}</strong><input id="metaEditSide" class="meta-inline-edit" type="text" placeholder="Standort" data-i18n-placeholder="sidePh" style="display:none;min-width:72px;width:72px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
+                <span><span data-i18n="customerLabel">Kunde:</span> <strong id="customerPreview" class="meta-inline-view">{{ mapping_plus_customer or '-' }}</strong><input id="metaEditCustomer" class="meta-inline-edit" type="text" placeholder="Kunde (intern, nicht im Download)" data-i18n-placeholder="customerPh" style="display:none;min-width:220px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
+                {% if auth_admin %}<button type="button" id="metaEditBtn" class="source-action-btn source-edit-btn">Ändern</button>{% endif %}
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+                <input id="newSourceRoleInput" type="text" placeholder="Neue LDAP/ORBIS-Rolle hinzufügen" data-i18n-placeholder="newSourceRolePh" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;min-width:280px;">
+                <button type="button" id="addSourceRoleBtn" data-i18n="btn.addSourceRole">+ Rolle hinzufügen</button>
+              </div>
+              <div style="margin:0 0 10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <label for="sourceRolesSearch" data-i18n="sourceRolesFilterLabel" style="margin:0;color:#5f7185;font-size:13px;white-space:nowrap;">AD/ORBIS-Rollen filtern:</label>
+                <input id="sourceRolesSearch" type="text" placeholder="AD/ORBIS-Rollen filtern..." data-i18n-placeholder="sourceRolesFilterPh" style="width:420px;max-width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
+                <button type="button" id="showSourceRolesListBtn" data-i18n="btn.showSourceRolesList">Rollenliste anzeigen</button>
+              </div>
+
+              <div id="bulkAssignZone" class="bulk-assign-zone" data-i18n="bulkAssignHint">Hier Persona/DU-Rolle/individuelle Rolle ablegen → allen aktuell sichtbaren AD/ORBIS-Rollen zuweisen</div>
+
+              <div id="sourceRolesModal" class="roles-modal" aria-hidden="true">
+                <div class="roles-modal-box">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                    <strong data-i18n="sourceRolesListTitle">AD/ORBIS-Rollenliste</strong>
+                    <button type="button" id="closeSourceRolesModalBtn" data-i18n="insiderClose">Schließen</button>
+                  </div>
+                  <div class="muted" style="margin:6px 0 10px 0;"><span data-i18n="sourceRolesListHint">Alle aktuell geladenen AD/ORBIS-Rollen:</span> <strong id="sourceRolesListCount">0</strong></div>
+                  <ul id="sourceRolesListUl" style="margin:0;padding-left:18px;"></ul>
+                </div>
+              </div>
+
+              <div id="sourceBucketsWrap">
+              {% for src in source_roles %}
+              <input type="hidden" name="source_roles" value="{{ src }}">
+              <div class="source-bucket-row" style="margin:10px 0; padding:10px; border:1px solid #dfe7ef; border-radius:10px;" data-source-row="{{ src }}">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><strong class="source-role-name">{{ src }}</strong><button type="button" class="source-action-btn source-edit-btn">Ändern</button><span class="source-action-spacer"></span><button type="button" class="source-action-btn source-del-btn">Löschen</button></div>
+                <div style="display:flex; gap:8px; margin:6px 0; flex-wrap:wrap;">
+                  <label style="font-size:12px; color:#5f7185;" data-i18n="copyFrom">Copy to this role from:</label>
+                  <select class="copy-from" data-target="{{ src }}"><option value="" data-i18n="selectRole">-- select role --</option>{% for src2 in source_roles %}{% if src2 != src %}<option value="{{ src2 }}">{{ src2 }}</option>{% endif %}{% endfor %}</select>
+                  <button type="button" class="copy-btn" data-target="{{ src }}" data-i18n="copyBtn">Copy</button>
+                </div>
+                <div class="dropzone bucket" data-source="{{ src }}">
+                  {% for p in (prefill_personas|default({})).get(src, []) %}
+                    <div class="pill" draggable="true" data-role="{{ p }}" data-kind="persona" data-known="1">{{ p }}</div>
+                  {% endfor %}
+                  {% for r in (prefill_roles|default({})).get(src, []) %}
+                    {% set is_known_role = (r in keycloak_roles) %}
+                    <div class="pill{% if not is_known_role %} unknown{% endif %}" draggable="true" data-role="{{ r }}" data-kind="role" data-known="{{ '1' if is_known_role else '0' }}">{{ r }}</div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          </div>
+
+          <div style="margin-top:12px; text-align:left; width:100%; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button type="submit" name="submit_mode" value="generate_txt" data-i18n="generateTxt">TXT erzeugen</button>
+            {% if not mapping_loaded_from_server %}<button type="submit" name="submit_mode" value="save_mapping" data-i18n="saveMapping">Mapping speichern</button>{% endif %}
+            {% if mapping_loaded_from_server %}<button type="submit" name="submit_mode" value="update_mapping" data-i18n="updateMapping">Mapping am Server aktualisieren</button>{% endif %}
+          </div>
+          <div class="muted" style="margin-top:6px;" data-i18n="updateHint">Hinweis: Bei "Mapping am Server aktualisieren" wird die bestehende Version ohne Änderungshistorie überschrieben.</div>
+        </form>
+        {% else %}
+        <div class="flash" data-i18n="msg.loadFirst">Bitte zuerst mapping.txt importieren, externe Rollen einfügen oder Mapping-Code vom Server eingeben, damit LDAP/ORBIS-Rollen angezeigt werden.</div>
+        {% endif %}
+      </div>
+
+      {% if generated_file %}<a href="/download/{{ generated_file }}">Erzeugte TXT herunterladen</a>{% endif %}
+    </main>
+  </div>
+
+  <div id="authModal" class="insider-modal" aria-hidden="true">
+    <div class="insider-box">
+      <h4 data-i18n="login">Login</h4>
+      <form method="post" action="/auth-login" id="authLoginForm">
+        <label style="font-size:13px;display:block;margin-bottom:4px;" data-i18n="login.role">Rolle</label>
+        <select name="scope" id="authScope" style="width:100%;padding:10px;border:1px solid #c7d5e2;border-radius:8px;">
+          <option value="admin" data-i18n="login.roleAdmin" {% if (login_scope or '') == 'admin' %}selected{% endif %}>Admin</option>
+          <option value="i18n" data-i18n="login.roleLocalizer" {% if (login_scope or '') == 'i18n' %}selected{% endif %}>Lokalisierer</option>
+        </select>
+        <div id="authLangWrap" style="margin-top:10px;">
+          <label style="font-size:13px;display:block;margin-bottom:4px;" data-i18n="login.language">Sprache</label>
+          <select name="lang" id="authLang" style="width:100%;padding:10px;border:1px solid #c7d5e2;border-radius:8px;">
+            {% for l in supported_langs %}<option value="{{ l }}" {% if (login_lang or 'de') == l %}selected{% endif %}>{{ l|upper }}</option>{% endfor %}
+          </select>
+        </div>
+        <div style="margin-top:10px;">
+          <input type="password" name="password" placeholder="Passwort" style="width:100%;padding:10px;border:1px solid #c7d5e2;border-radius:8px;" autofocus>
+        </div>
+        <br>
+        <button type="submit" data-i18n="login">Login</button>
+        <button type="button" id="authCloseBtn" class="insider-close" data-i18n="insiderClose">Schließen</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="insiderModal" class="insider-modal" aria-hidden="true">
+    <div class="insider-box">
+      <h4 data-i18n="insiderTitle">👻 Insider-Ecke</h4>
+      <div data-i18n="insiderText">👻 Hallo User ich freue mich über Dich!<br>Ich tue so, als wäre ich ruhig… und schiebe nebenbei Versionen hoch.<br>Dieses Projekt macht mir so viel Spaß, dass sogar meine Bugs pünktlich sind.<br><br>Spaßfaktor am Projekt: 9/10 Geisterketten.</div>
+      <button type="button" id="insiderCloseBtn" class="insider-close" data-i18n="insiderClose">Schließen</button>
+    </div>
+  </div>
+
+  {% if generated_file %}
+  <script>
+    // Auto-start download after TXT generation.
+    window.addEventListener('load', function () {
+      window.location.href = '/download/{{ generated_file }}';
+    });
+  </script>
+  {% endif %}
+
+  <script>
+    (function () {
+      const I18N = {
+        de: {
+          title: 'LDAP/ORBIS → Keycloak Rolemappe',
+          menu: 'Menü / Navigation',
+          'nav.main': 'Hauptseite',
+          'nav.guide':'Anleitung / Guide',
+          'nav.personaConfig': 'Persona-Konfiguration',
+          'nav.roles': 'Rollenliste bearbeiten',
+          'nav.personaNames': 'Persona-Liste bearbeiten',
+          'nav.i18n':'Lokalisierungstexte bearbeiten', 'nav.changelog':'Changelog', 'login':'Login', 'logout':'Logout','login.role':'Rolle','login.roleAdmin':'Admin','login.roleLocalizer':'Lokalisierer','login.language':'Sprache',
+          indexHint: 'CSV hochladen oder Testmodus nutzen, Personas zuordnen, TXT herunterladen.',
+          'sec.uploadTitle': 'mapping.txt importieren',
+          'sec.uploadHint': 'Hinweis: Lade eine bestehende mapping.txt hoch, um Quellrollen aus den SOURCE-Einträgen zu übernehmen.',
+          'btn.validate': 'Importieren & Zuordnung vorbereiten',
+          'sec.testTitle': 'Externe Authentifizierungsrollen','sec.dirtyTitle':'Dirty Keycloak importieren',
+          'btn.createTest': 'Mapping beginnen','btn.dirtyImport':'Dirty Keycloak importieren',
+          'btn.fillSample':'Beispielrollen einfügen',
+          'sec.loadTitle':'ad-ds oder orbis-ds code', 'sec.mappingTitle': 'Mapping',
+          'msg.loadFirst': 'Bitte zuerst mapping.txt importieren, externe Rollen einfügen oder Mapping-Code vom Server eingeben, damit LDAP/ORBIS-Rollen angezeigt werden.',
+          'copyFrom':'In diese Rolle kopieren von:',
+          'selectRole':'-- Rolle wählen --',
+          'copyBtn':'Kopieren',
+          'generateTxt':'TXT erzeugen','saveMapping':'Mapping speichern','updateMapping':'Mapping am Server aktualisieren','updateHint':'Hinweis: Bei "Mapping am Server aktualisieren" wird die bestehende Version ohne Änderungshistorie überschrieben.','btn.loadMapping':'Mapping laden','btn.parseMappingText':'Text parsen & laden','btn.addSourceRole':'+ Rolle hinzufügen','btn.freshStart':'Neu beginnen','mappingCodePh':'Mapping Code eingeben','mappingRawPh':'Inhalt der orbis-ds.xml oder ad-ds.xml einfügen','customerPh':'Kunde (intern, nicht im Download)','countryLabel':'Land:','postalLabel':'PLZ:','cityLabel':'Stadt:','customerNoLabel':'Kundennummer:','sideLabel':'Standort:','customerLabel':'Kunde:','countryPh':'Land','postalPh':'PLZ','cityPh':'Stadt','customerNoPh':'Kundennummer','sidePh':'Standort','personaFilterPh':'Personas filtern...','rolesFilterPh':'Rollen filtern...','rolesColA':'DU Berechtigungsrollen','customRoles':'Individuelle Rollen','customRolesPh':'Rollen per Zeile, Komma oder Semikolon einfügen','addCustomRoles':'Rollen hinzufügen','newSourceRolePh':'Neue LDAP/ORBIS-Rolle hinzufügen','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'AD/ORBIS-Rollen filtern:','sourceRolesFilterPh':'AD/ORBIS-Rollen filtern...','btn.showSourceRolesList':'Rollenliste anzeigen','sourceRolesListTitle':'AD/ORBIS-Rollenliste','sourceRolesListHint':'Alle aktuell geladenen AD/ORBIS-Rollen:','bulkAssignHint':'Hier Persona/DU-Rolle/individuelle Rolle ablegen → allen aktuell sichtbaren AD/ORBIS-Rollen zuweisen',
+          'chooseFile':'Datei auswählen',
+          'noFile':'Keine Datei ausgewählt',
+          'insiderTitle':'👻 Insider-Ecke',
+          'insiderText':'👻 Hallo User ich freue mich über Dich! Ich tue so, als wäre ich ruhig… und schiebe nebenbei Versionen hoch. Dieses Projekt macht mir so viel Spaß, dass sogar meine Bugs pünktlich sind. Spaßfaktor am Projekt: 9/10 Geisterketten.',
+          'insiderClose':'Schließen','entryLocked':'Einstieg gesperrt: Mapping ist bereits geladen. Bitte zuerst aktuellen Vorgang abschließen.','warn.unmappedHeader':'Hinweis: Folgende AD/ORBIS-Rollen haben kein Mapping und erscheinen daher nicht in der TXT:','warn.generatedFile':'Erzeugte Datei:'
+        },
+        en: {
+          title: 'LDAP/ORBIS → Keycloak Rolemappe',
+          menu: 'Menu / Navigation',
+          'nav.main': 'Main page',
+          'nav.guide':'Guide',
+          'nav.personaConfig': 'Persona configuration',
+          'nav.roles': 'Edit roles list',
+          'nav.personaNames': 'Edit persona names',
+          'nav.i18n':'Edit localization texts', 'nav.changelog':'Changelog', 'login':'Login', 'logout':'Logout','login.role':'Role','login.roleAdmin':'Admin','login.roleLocalizer':'Localizer','login.language':'Language',
+          indexHint: 'Upload CSV or use test mode, map personas, download TXT.',
+          'sec.uploadTitle': 'Import mapping.txt',
+          'sec.uploadHint': 'Note: Upload an existing mapping.txt to load source roles from SOURCE entries.',
+          'btn.validate': 'Import & prepare assignment',
+          'sec.testTitle': 'External authentication roles','sec.dirtyTitle':'Import dirty Keycloak',
+          'btn.createTest': 'Start mapping','btn.dirtyImport':'Import dirty Keycloak',
+          'btn.fillSample':'Insert sample roles',
+          'sec.loadTitle':'Load mapping', 'sec.mappingTitle': 'Mapping',
+          'msg.loadFirst': 'Please import mapping.txt, paste external roles, or enter a mapping code from server first so LDAP/ORBIS roles become visible.',
+          'copyFrom':'Copy to this role from:',
+          'selectRole':'-- select role --',
+          'copyBtn':'Copy',
+          'generateTxt':'Generate TXT','saveMapping':'Save mapping','updateMapping':'Update mapping on server','updateHint':'Note: "Update mapping on server" overwrites the existing version without change history.','btn.loadMapping':'Load mapping','btn.parseMappingText':'Parse text & load','btn.addSourceRole':'+ Add role','btn.freshStart':'Start fresh','mappingCodePh':'Enter mapping code','mappingRawPh':'Paste content of orbis-ds.xml or ad-ds.xml','customerPh':'Customer (internal, not in download)','countryLabel':'Country:','postalLabel':'ZIP:','cityLabel':'City:','customerNoLabel':'Customer no.:','sideLabel':'Location:','customerLabel':'Customer:','countryPh':'Country','postalPh':'ZIP','cityPh':'City','customerNoPh':'Customer no.','sidePh':'Location','personaFilterPh':'Filter personas...','rolesFilterPh':'Filter roles...','rolesColA':'DU permission roles','customRoles':'Custom roles','customRolesPh':'Insert roles per line, comma or semicolon','addCustomRoles':'Add roles','newSourceRolePh':'Add new LDAP/ORBIS role','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filter AD/ORBIS roles:','sourceRolesFilterPh':'Filter AD/ORBIS roles...','btn.showSourceRolesList':'Show roles list','sourceRolesListTitle':'AD/ORBIS roles list','sourceRolesListHint':'All currently loaded AD/ORBIS roles:','bulkAssignHint':'Drop persona/DU role/custom role here → assign to all currently visible AD/ORBIS roles',
+          'chooseFile':'Choose file',
+          'noFile':'No file selected',
+          'insiderTitle':'👻 Insider corner',
+          'insiderText':'👻 Hello user, I\'m happy you\'re here! I pretend to be calm… and quietly ship versions on the side. This project is so much fun that even my bugs are on time. Fun factor in this project: 9/10 ghost chains.',
+          'insiderClose':'Close','entryLocked':'Entry locked: A mapping is already loaded. Please finish the current process first.','warn.unmappedHeader':'Note: The following AD/ORBIS roles have no mapping and therefore do not appear in the TXT:','warn.generatedFile':'Generated file:'
+        },
+        it: {
+          title: 'LDAP/ORBIS → Keycloak Rolemappe',
+          menu: 'Menu / Navigazione',
+          'nav.main': 'Pagina principale',
+          'nav.guide':'Guida',
+          'nav.personaConfig': 'Configurazione persona',
+          'nav.roles': 'Modifica elenco ruoli',
+          'nav.personaNames': 'Modifica elenco persona',
+          'nav.i18n':'Modifica testi localizzazione', 'nav.changelog':'Changelog', 'login':'Login', 'logout':'Logout','login.role':'Ruolo','login.roleAdmin':'Admin','login.roleLocalizer':'Localizzatore','login.language':'Lingua',
+          hint: 'Carica CSV o usa la modalità test, mappa le personas e scarica TXT.',
+          'sec.uploadTitle': 'Importa mapping.txt',
+          'sec.uploadHint': 'Nota: carica un mapping.txt esistente per leggere i ruoli sorgente dalle voci SOURCE.',
+          'btn.validate': 'Importa e prepara assegnazione',
+          'sec.testTitle': 'Ruoli di autenticazione esterna','sec.dirtyTitle':'Importa dirty Keycloak',
+          'btn.createTest': 'Avvia mapping','btn.dirtyImport':'Importa dirty Keycloak',
+          'btn.fillSample':'Inserisci ruoli di esempio',
+          'sec.loadTitle':'Carica mapping', 'sec.mappingTitle': 'Mappatura',
+          'msg.loadFirst': 'Importa prima mapping.txt, incolla ruoli esterni o inserisci un codice mapping dal server per mostrare i ruoli LDAP/ORBIS.',
+          'copyFrom':'Copia in questo ruolo da:',
+          'selectRole':'-- seleziona ruolo --',
+          'copyBtn':'Copia',
+          'generateTxt':'Genera TXT','saveMapping':'Salva mapping','updateMapping':'Aggiorna mapping sul server','updateHint':'Nota: "Aggiorna mapping sul server" sovrascrive la versione esistente senza cronologia modifiche.','btn.loadMapping':'Carica mapping','btn.parseMappingText':'Analizza testo e carica','btn.addSourceRole':'+ Aggiungi ruolo','btn.freshStart':'Nuovo inizio','mappingCodePh':'Inserisci codice mapping','mappingRawPh':'Incolla il contenuto di orbis-ds.xml o ad-ds.xml','customerPh':'Cliente (interno, non nel download)','countryLabel':'Paese:','postalLabel':'CAP:','cityLabel':'Città:','customerNoLabel':'Numero cliente:','sideLabel':'Sede:','customerLabel':'Cliente:','countryPh':'Paese','postalPh':'CAP','cityPh':'Città','customerNoPh':'Numero cliente','sidePh':'Sede','personaFilterPh':'Filtra personas...','rolesFilterPh':'Filtra ruoli...','rolesColA':'Ruoli di autorizzazione DU','customRoles':'Ruoli personalizzati','customRolesPh':'Inserisci ruoli per riga, virgola o punto e virgola','addCustomRoles':'Aggiungi ruoli','newSourceRolePh':'Aggiungi nuovo ruolo LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtra ruoli AD/ORBIS:','sourceRolesFilterPh':'Filtra ruoli AD/ORBIS...','btn.showSourceRolesList':'Mostra elenco ruoli','sourceRolesListTitle':'Elenco ruoli AD/ORBIS','sourceRolesListHint':'Tutti i ruoli AD/ORBIS attualmente caricati:','bulkAssignHint':'Trascina qui persona/ruolo DU/ruolo personalizzato → assegna a tutti i ruoli AD/ORBIS attualmente visibili',
+          'chooseFile':'Scegli file',
+          'noFile':'Nessun file selezionato',
+          'insiderTitle':'👻 Angolo insider',
+          'insiderText':'👻 Ciao utente, sono felice che tu sia qui! Faccio finta di essere tranquillo… e intanto pubblico versioni in silenzio. Questo progetto mi diverte così tanto che perfino i miei bug sono puntuali. Fattore divertimento del progetto: 9/10 catene fantasma.',
+          'insiderClose':'Chiudi','entryLocked':'Ingresso bloccato: un mapping è già caricato. Completa prima il processo corrente.','warn.unmappedHeader':'Nota: I seguenti ruoli AD/ORBIS non hanno mapping e quindi non compaiono nel TXT:','warn.generatedFile':'File generato:'
+        },
+        fr: {
+          title: 'LDAP/ORBIS → Keycloak Rolemappe',
+          menu: 'Menu / Navigation',
+          'nav.main': 'Page principale',
+          'nav.guide':'Guide',
+          'nav.personaConfig': 'Configuration des personas',
+          'nav.roles': 'Modifier la liste des rôles',
+          'nav.personaNames': 'Modifier la liste des personas',
+          'nav.i18n':'Modifier les textes de localisation', 'nav.changelog':'Changelog', 'login':'Connexion', 'logout':'Déconnexion','login.role':'Rôle','login.roleAdmin':'Admin','login.roleLocalizer':'Localisateur','login.language':'Langue',
+          hint: 'Téléchargez un CSV ou utilisez le mode test, mappez les personas, téléchargez le TXT.',
+          'sec.uploadTitle': 'Importer mapping.txt',
+          'sec.uploadHint': 'Remarque : les fichiers pris en charge sont acceptés. CSV avec les rôles d\'authentification externe ou mapping.txt existant (ou le plus récent mapping-*.txt).',
+          'btn.validate': 'Valider et préparer l\'affectation',
+          'sec.testTitle': 'Rôles d\'authentification externe','sec.dirtyTitle':'Importer dirty Keycloak',
+          'btn.createTest': 'Démarrer le mapping','btn.dirtyImport':'Importer dirty Keycloak',
+          'btn.fillSample':'Insérer des rôles d\'exemple',
+          'sec.loadTitle':'Charger mapping', 'sec.mappingTitle': 'Mapping',
+          'msg.loadFirst': 'Veuillez d\'abord charger un CSV ou créer une affectation de test afin d\'afficher les rôles LDAP/ORBIS.',
+          'copyFrom':'Copier vers ce rôle depuis :',
+          'selectRole':'-- sélectionner un rôle --',
+          'copyBtn':'Copier',
+          'generateTxt':'Générer TXT','saveMapping':'Enregistrer mapping','updateMapping':'Mettre à jour le mapping sur le serveur','updateHint':'Remarque : "Mettre à jour le mapping sur le serveur" écrase la version existante sans historique.','btn.loadMapping':'Charger mapping','btn.parseMappingText':'Parser le texte et charger','btn.addSourceRole':'+ Ajouter un rôle','btn.freshStart':'Repartir à zéro','mappingCodePh':'Saisir le code mapping','mappingRawPh':'Coller le contenu de orbis-ds.xml ou ad-ds.xml','customerPh':'Client (interne, non inclus dans le téléchargement)','countryLabel':'Pays :','postalLabel':'Code postal :','cityLabel':'Ville :','customerNoLabel':'N° client :','sideLabel':'Site :','customerLabel':'Client :','countryPh':'Pays','postalPh':'Code postal','cityPh':'Ville','customerNoPh':'N° client','sidePh':'Site','personaFilterPh':'Filtrer les personas...','rolesFilterPh':'Filtrer les rôles...','rolesColA':'Rôles d\'autorisation DU','customRoles':'Rôles personnalisés','customRolesPh':'Insérer des rôles par ligne, virgule ou point-virgule','addCustomRoles':'Ajouter des rôles','newSourceRolePh':'Ajouter un nouveau rôle LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrer les rôles AD/ORBIS :','sourceRolesFilterPh':'Filtrer les rôles AD/ORBIS...','btn.showSourceRolesList':'Afficher la liste des rôles','sourceRolesListTitle':'Liste des rôles AD/ORBIS','sourceRolesListHint':'Tous les rôles AD/ORBIS actuellement chargés :','bulkAssignHint':'Déposer ici persona/rôle DU/rôle personnalisé → affecter à tous les rôles AD/ORBIS actuellement visibles',
+          'chooseFile':'Choisir un fichier',
+          'noFile':'Aucun fichier sélectionné',
+          'insiderTitle':'👻 Coin insider',
+          'insiderText':'👻 Bonjour utilisateur, je suis heureux de te voir ici ! Je fais semblant d\'être calme… et je publie discrètement des versions à côté. Ce projet m\'amuse tellement que même mes bugs arrivent à l\'heure. Facteur fun du projet : 9/10 chaînes fantômes.',
+          'insiderClose':'Fermer','entryLocked':'Entrée verrouillée : un mapping est déjà chargé. Terminez d\'abord le processus en cours.','warn.unmappedHeader':'Remarque : les rôles AD/ORBIS suivants n\'ont pas de mapping et n\'apparaissent donc pas dans le TXT :','warn.generatedFile':'Fichier généré :',
+        },
+        pt: {
+          title: 'LDAP/ORBIS → Keycloak Rolemappe',
+          menu: 'Menu / Navegação',
+          'nav.main': 'Página principal',
+          'nav.guide':'Guia',
+          'nav.personaConfig': 'Configuração de personas',
+          'nav.roles': 'Editar lista de roles',
+          'nav.personaNames': 'Editar lista de personas',
+          'nav.i18n':'Editar textos de localización', 'nav.changelog':'Changelog', 'login':'Iniciar sesión', 'logout':'Cerrar sesión','login.role':'Rol','login.roleAdmin':'Admin','login.roleLocalizer':'Localizador','login.language':'Idioma',
+          hint: 'Envie CSV ou use modo de teste, mapeie personas e baixe TXT.',
+          'sec.uploadTitle': 'Importar mapping.txt',
+          'sec.uploadHint': 'Nota: envie um mapping.txt existente para carregar roles de origem das entradas SOURCE.',
+          'btn.validate': 'Importar e preparar atribuição',
+          'sec.testTitle': 'Roles de autenticação externa','sec.dirtyTitle':'Importar dirty Keycloak',
+          'btn.createTest': 'Iniciar mapeamento','btn.dirtyImport':'Importar dirty Keycloak',
+          'btn.fillSample':'Inserir roles de exemplo',
+          'sec.loadTitle':'Carregar mapping', 'sec.mappingTitle': 'Mapeamento',
+          'msg.loadFirst': 'Importe mapping.txt, cole roles externos ou informe o código de mapping do servidor para mostrar os papéis LDAP/ORBIS.',
+          'copyFrom':'Copiar para este role de:',
+          'selectRole':'-- selecionar role --',
+          'copyBtn':'Copiar',
+          'generateTxt':'Gerar TXT','saveMapping':'Salvar mapping','updateMapping':'Atualizar mapping no servidor','updateHint':'Observação: "Atualizar mapping no servidor" sobrescreve a versão existente sem histórico.','btn.loadMapping':'Carregar mapping','btn.parseMappingText':'Analisar texto e carregar','btn.addSourceRole':'+ Adicionar role','btn.freshStart':'Começar do zero','mappingCodePh':'Inserir código mapping','mappingRawPh':'Cole o conteúdo de orbis-ds.xml ou ad-ds.xml','customerPh':'Cliente (interno, não no download)','countryLabel':'País:','postalLabel':'CEP:','cityLabel':'Cidade:','customerNoLabel':'Nº cliente:','sideLabel':'Local:','customerLabel':'Cliente:','countryPh':'País','postalPh':'CEP','cityPh':'Cidade','customerNoPh':'Nº cliente','sidePh':'Local','personaFilterPh':'Filtrar personas...','rolesFilterPh':'Filtrar roles...','rolesColA':'Roles de permissão DU','customRoles':'Roles personalizados','customRolesPh':'Inserir roles por linha, vírgula ou ponto e vírgula','addCustomRoles':'Adicionar roles','newSourceRolePh':'Adicionar novo role LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrar roles AD/ORBIS:','sourceRolesFilterPh':'Filtrar roles AD/ORBIS...','btn.showSourceRolesList':'Mostrar lista de roles','sourceRolesListTitle':'Lista de roles AD/ORBIS','sourceRolesListHint':'Todos os roles AD/ORBIS carregados no momento:','bulkAssignHint':'Solte persona/role DU/role personalizado aqui → atribuir a todos os roles AD/ORBIS visíveis no momento',
+          'chooseFile':'Selecionar arquivo',
+          'noFile':'Nenhum arquivo selecionado',
+          'insiderTitle':'👻 Cantinho insider',
+          'insiderText':'👻 Olá usuário, fico feliz em ter você aqui! Eu ajo como se estivesse calmo… e vou lançando versões em paralelo. Este projeto está tão divertido que até meus bugs são pontuais. Fator diversão no projeto: 9/10 correntes fantasma.',
+          'insiderClose':'Fechar','entryLocked':'Entrada bloqueada: um mapping já está carregado. Conclua primeiro o processo atual.','warn.unmappedHeader':'Observação: os seguintes roles AD/ORBIS não têm mapping e por isso não aparecem no TXT:','warn.generatedFile':'Arquivo gerado:'
+        },
+        es: {
+          title: 'LDAP/ORBIS → Keycloak Rolemappe',
+          menu: 'Menú / Navegación',
+          'nav.main': 'Página principal',
+          'nav.guide':'Guia',
+          'nav.personaConfig': 'Configuración de personas',
+          'nav.roles': 'Editar lista de roles',
+          'nav.personaNames': 'Editar lista de personas',
+          'nav.i18n':'Editar textos de localización', 'nav.changelog':'Changelog', 'login':'Iniciar sesión', 'logout':'Cerrar sesión','login.role':'Rol','login.roleAdmin':'Admin','login.roleLocalizer':'Localizador','login.language':'Idioma',
+          hint: 'Sube CSV o usa modo prueba, asigna personas y descarga TXT.',
+          'sec.uploadTitle': 'Importar mapping.txt',
+          'sec.uploadHint': 'Nota: sube un mapping.txt existente para cargar roles origen desde entradas SOURCE.',
+          'btn.validate': 'Importar y preparar asignación',
+          'sec.testTitle': 'Roles de autenticación externa','sec.dirtyTitle':'Importar dirty Keycloak',
+          'btn.createTest': 'Iniciar mapeo','btn.dirtyImport':'Importar dirty Keycloak',
+          'btn.fillSample':'Insertar roles de ejemplo',
+          'sec.loadTitle':'Cargar mapping', 'sec.mappingTitle': 'Mapeo',
+          'msg.loadFirst': 'Primero importa mapping.txt, pega roles externos o introduce un código de mapping del servidor para mostrar los roles LDAP/ORBIS.',
+          'copyFrom':'Copiar a este rol desde:',
+          'selectRole':'-- seleccionar rol --',
+          'copyBtn':'Copiar',
+          'generateTxt':'Generar TXT','saveMapping':'Guardar mapping','updateMapping':'Actualizar mapping en el servidor','updateHint':'Nota: "Actualizar mapping en el servidor" sobrescribe la versión existente sin historial.','btn.loadMapping':'Cargar mapping','btn.parseMappingText':'Analizar texto y cargar','btn.addSourceRole':'+ Añadir rol','btn.freshStart':'Comenzar desde cero','mappingCodePh':'Introducir código mapping','mappingRawPh':'Pega el contenido de orbis-ds.xml o ad-ds.xml','customerPh':'Cliente (interno, no en la descarga)','countryLabel':'País:','postalLabel':'Código postal:','cityLabel':'Ciudad:','customerNoLabel':'Nº cliente:','sideLabel':'Ubicación:','customerLabel':'Cliente:','countryPh':'País','postalPh':'Código postal','cityPh':'Ciudad','customerNoPh':'Nº cliente','sidePh':'Ubicación','personaFilterPh':'Filtrar personas...','rolesFilterPh':'Filtrar roles...','rolesColA':'Roles de permisos DU','customRoles':'Roles personalizados','customRolesPh':'Insertar roles por línea, coma o punto y coma','addCustomRoles':'Añadir roles','newSourceRolePh':'Añadir nuevo rol LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrar roles AD/ORBIS:','sourceRolesFilterPh':'Filtrar roles AD/ORBIS...','btn.showSourceRolesList':'Mostrar lista de roles','sourceRolesListTitle':'Lista de roles AD/ORBIS','sourceRolesListHint':'Todos los roles AD/ORBIS cargados actualmente:','bulkAssignHint':'Soltar aquí persona/rol DU/rol personalizado → asignar a todos los roles AD/ORBIS visibles actualmente',
+          'chooseFile':'Seleccionar archivo',
+          'noFile':'Ningún archivo seleccionado',
+          'insiderTitle':'👻 Rincón insider',
+          'insiderText':'👻 ¡Hola usuario, me alegra mucho tenerte aquí! Actúo como si estuviera tranquilo… y voy subiendo versiones por detrás. Este proyecto me divierte tanto que hasta mis bugs llegan puntuales. Factor de diversión del proyecto: 9/10 cadenas fantasma.',
+          'insiderClose':'Cerrar','entryLocked':'Entrada bloqueada: ya hay un mapping cargado. Primero finaliza el proceso actual.','warn.unmappedHeader':'Nota: los siguientes roles AD/ORBIS no tienen mapping y por eso no aparecen en el TXT:','warn.generatedFile':'Archivo generado:'
+        }
+        
+      };
+
+      const I18N_OVERRIDES = {{ i18n_overrides | tojson }};
+      if (I18N_OVERRIDES && typeof I18N_OVERRIDES === 'object') {
+        Object.entries(I18N_OVERRIDES).forEach(([lang, values]) => {
+          if (!I18N[lang] || !values || typeof values !== 'object') return;
+          Object.entries(values).forEach(([k, v]) => {
+            if (String(k).startsWith('insider')) return;
+            I18N[lang][k] = String(v);
+          });
+        });
+      }
+
+      const updateMenuLangLinks=(lang)=>{document.querySelectorAll('.menu a[href^="/"]').forEach(a=>{try{const u=new URL(a.getAttribute('href'), window.location.origin);u.searchParams.set('lang',lang);a.setAttribute('href',u.pathname+u.search);}catch(_){}});};
+      const applyLang = (lang) => {
+        const dict = I18N[lang] || I18N.de;
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const key = el.dataset.i18n;
+          if (dict[key]) el.textContent = dict[key];
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((el)=>{const k=el.dataset.i18nPlaceholder; if(dict[k]) el.placeholder=dict[k];});
+        updateMenuLangLinks(lang);
+        localStorage.setItem('rolemapper_lang', lang); document.cookie='rolemapper_lang='+encodeURIComponent(lang)+'; path=/; max-age=31536000; SameSite=Lax';
+      };
+
+      const langSwitch = document.getElementById('langSwitch');
+      const langFromUrl = (new URLSearchParams(window.location.search).get('lang') || '').toLowerCase();
+      const langFromStorage = (localStorage.getItem('rolemapper_lang') || '').toLowerCase();
+      const langFromCookie = decodeURIComponent(((document.cookie.match(/(?:^|; )rolemapper_lang=([^;]+)/)||[])[1] || '')).toLowerCase();
+      const initialLang = (I18N[langFromUrl] && langFromUrl) || (I18N[langFromStorage] && langFromStorage) || (I18N[langFromCookie] && langFromCookie) || 'de';
+
+      document.querySelectorAll('.ui-lang-field').forEach((el)=>{ el.value = initialLang; });
+      if (langSwitch) {
+        langSwitch.value = initialLang;
+        langSwitch.addEventListener('change', () => {
+          applyLang(langSwitch.value);
+          document.querySelectorAll('.ui-lang-field').forEach((el)=>{ el.value = langSwitch.value; });
+          const fi = document.getElementById('mapping_file');
+          const lbl = document.getElementById('fileNameLabel');
+          if (fi && lbl && (!fi.files || fi.files.length === 0)) {
+            const dict = I18N[langSwitch.value] || I18N.de;
+            lbl.textContent = dict.noFile || 'No file selected';
+          }
+        });
+      }
+      applyLang(initialLang);
+
+      // Optional manual editor name (for lock messages) when no SSO user is available.
+      (function ensureEditorNameCookie(){
+        const getCookie = (name) => {
+          const m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+          return m ? decodeURIComponent(m[1]) : '';
+        };
+        let name = (getCookie('rolemapper_editor_name') || localStorage.getItem('rolemapper_editor_name') || '').trim();
+        if (name) {
+          document.cookie = 'rolemapper_editor_name=' + encodeURIComponent(name) + '; path=/; max-age=31536000; SameSite=Lax';
+          localStorage.setItem('rolemapper_editor_name', name);
+          return;
+        }
+        const entered = (window.prompt('Bitte Namen für Bearbeitungs-Lock eingeben (z. B. Vorname):', '') || '').trim();
+        if (!entered) return;
+        name = entered.slice(0, 80);
+        document.cookie = 'rolemapper_editor_name=' + encodeURIComponent(name) + '; path=/; max-age=31536000; SameSite=Lax';
+        localStorage.setItem('rolemapper_editor_name', name);
+        window.location.reload();
+      })();
+
+      // Localized custom file picker label.
+      const csvInput = document.getElementById('mapping_file');
+      const filePickBtn = document.getElementById('filePickBtn');
+      const fileNameLabel = document.getElementById('fileNameLabel');
+      if (filePickBtn && csvInput) {
+        filePickBtn.addEventListener('click', () => csvInput.click());
+      }
+      if (csvInput && fileNameLabel) {
+        csvInput.addEventListener('change', () => {
+          if (csvInput.files && csvInput.files.length > 0) {
+            fileNameLabel.textContent = csvInput.files[0].name;
+          } else {
+            const lang = (langSwitch && langSwitch.value) || initialLang;
+            const dict = I18N[lang] || I18N.de;
+            fileNameLabel.textContent = dict.noFile || 'No file selected';
+          }
+        });
+      }
+
+      const freshStartBtn = document.getElementById('freshStartBtn');
+      if (freshStartBtn) {
+        freshStartBtn.addEventListener('click', () => {
+          const lang = (langSwitch && langSwitch.value) || initialLang || 'de';
+          window.location.href = '/?lang=' + encodeURIComponent(lang);
+        });
+      }
+
+      const sampleRoles = {{ (default_test_roles or "") | tojson }};
+      const fillSampleBtn = document.getElementById('fillSampleBtn');
+      const manualRoles = document.getElementById('manual_roles');
+      const personaSearch = document.getElementById('personaSearch');
+      const rolesSearch = document.getElementById('rolesSearch');
+      const togglePersonaBtn = document.getElementById('togglePersonaBtn');
+      const toggleRolesBtn = document.getElementById('toggleRolesBtn');
+      const toggleCustomBtn = document.getElementById('toggleCustomBtn');
+      const personaSection = document.getElementById('personaSection');
+      const rolesSection = document.getElementById('rolesSection');
+      const customSection = document.getElementById('customSection');
+      const customRolesInput = document.getElementById('customRolesInput');
+      const addCustomRolesBtn = document.getElementById('addCustomRolesBtn');
+      const customRolePool = document.getElementById('customRolePool');
+      const mappingCountryInput = document.getElementById('mappingCountryInput');
+      const mappingPostalInput = document.getElementById('mappingPostalInput');
+      const mappingCityInput = document.getElementById('mappingCityInput');
+      const mappingCustomerNoInput = document.getElementById('mappingCustomerNoInput');
+      const mappingSideInput = document.getElementById('mappingSideInput');
+      const mappingCustomerInput = document.getElementById('mappingCustomerInput');
+      const countryPreview = document.getElementById('countryPreview');
+      const postalPreview = document.getElementById('postalPreview');
+      const cityPreview = document.getElementById('cityPreview');
+      const customerNoPreview = document.getElementById('customerNoPreview');
+      const sidePreview = document.getElementById('sidePreview');
+      const customerPreview = document.getElementById('customerPreview');
+      if (fillSampleBtn && manualRoles) {
+        fillSampleBtn.addEventListener('click', () => {
+          manualRoles.value = sampleRoles || '';
+        });
+      }
+      if (togglePersonaBtn && personaSection) {
+        togglePersonaBtn.addEventListener('click', () => {
+          const hidden = personaSection.style.display === 'none';
+          personaSection.style.display = hidden ? '' : 'none';
+          togglePersonaBtn.textContent = hidden ? '▾' : '▸';
+        });
+      }
+      if (toggleRolesBtn && rolesSection) {
+        toggleRolesBtn.addEventListener('click', () => {
+          const hidden = rolesSection.style.display === 'none';
+          rolesSection.style.display = hidden ? '' : 'none';
+          toggleRolesBtn.textContent = hidden ? '▾' : '▸';
+        });
+      }
+      if (toggleCustomBtn && customSection) {
+        toggleCustomBtn.addEventListener('click', () => {
+          const hidden = customSection.style.display === 'none';
+          customSection.style.display = hidden ? '' : 'none';
+          toggleCustomBtn.textContent = hidden ? '▾' : '▸';
+        });
+      }
+      const syncCustomerPreview = () => {
+        if (countryPreview) {
+          const vCountry = (mappingCountryInput && mappingCountryInput.value || '').trim();
+          countryPreview.textContent = vCountry || '-';
+        }
+        if (postalPreview) {
+          const vPostal = (mappingPostalInput && mappingPostalInput.value || '').trim();
+          postalPreview.textContent = vPostal || '-';
+        }
+        if (cityPreview) {
+          const vCity = (mappingCityInput && mappingCityInput.value || '').trim();
+          cityPreview.textContent = vCity || '-';
+        }
+        if (customerNoPreview) {
+          const vNo = (mappingCustomerNoInput && mappingCustomerNoInput.value || '').trim();
+          customerNoPreview.textContent = vNo || '-';
+        }
+        if (sidePreview) {
+          const vSide = (mappingSideInput && mappingSideInput.value || '').trim();
+          sidePreview.textContent = vSide || '-';
+        }
+        if (customerPreview) {
+          const v = (mappingCustomerInput && mappingCustomerInput.value || '').trim();
+          customerPreview.textContent = v || '-';
+        }
+      };
+      if (mappingCountryInput) mappingCountryInput.addEventListener('change', syncCustomerPreview);
+      if (mappingPostalInput) mappingPostalInput.addEventListener('input', syncCustomerPreview);
+      if (mappingCityInput) mappingCityInput.addEventListener('input', syncCustomerPreview);
+      if (mappingCustomerNoInput) mappingCustomerNoInput.addEventListener('input', syncCustomerPreview);
+      if (mappingSideInput) mappingSideInput.addEventListener('input', syncCustomerPreview);
+      if (mappingCustomerInput) mappingCustomerInput.addEventListener('input', syncCustomerPreview);
+      syncCustomerPreview();
+
+      const metaEditBtn = document.getElementById('metaEditBtn');
+      const metaEditCountry = document.getElementById('metaEditCountry');
+      const metaEditPostal = document.getElementById('metaEditPostal');
+      const metaEditCity = document.getElementById('metaEditCity');
+      const metaEditCustomerNo = document.getElementById('metaEditCustomerNo');
+      const metaEditSide = document.getElementById('metaEditSide');
+      const metaEditCustomer = document.getElementById('metaEditCustomer');
+      let metaEditing = false;
+
+      const setMetaEditButtonState = () => {
+        if (!metaEditBtn) return;
+        metaEditBtn.textContent = metaEditing ? 'OK' : 'Ändern';
+      };
+
+      const setMetaInlineEditMode = (editing) => {
+        document.querySelectorAll('.meta-inline-view').forEach((el) => { el.style.display = editing ? 'none' : ''; });
+        document.querySelectorAll('.meta-inline-edit').forEach((el) => { el.style.display = editing ? '' : 'none'; });
+      };
+
+      const applyMetaEditorValues = () => {
+        const vCountry = String((metaEditCountry && metaEditCountry.value) || '').trim();
+        const vPostal = String((metaEditPostal && metaEditPostal.value) || '').trim();
+        const vCity = String((metaEditCity && metaEditCity.value) || '').trim();
+        const vNo = String((metaEditCustomerNo && metaEditCustomerNo.value) || '').trim();
+        const vSide = String((metaEditSide && metaEditSide.value) || '').trim();
+        const vCustomer = String((metaEditCustomer && metaEditCustomer.value) || '').trim();
+
+        if (mappingCountryInput) mappingCountryInput.value = vCountry;
+        if (mappingPostalInput) mappingPostalInput.value = vPostal;
+        if (mappingCityInput) mappingCityInput.value = vCity;
+        if (mappingCustomerNoInput) mappingCustomerNoInput.value = vNo;
+        if (mappingSideInput) mappingSideInput.value = vSide;
+        if (mappingCustomerInput) mappingCustomerInput.value = vCustomer;
+
+        if (countryPreview) countryPreview.textContent = vCountry || '-';
+        if (postalPreview) postalPreview.textContent = vPostal || '-';
+        if (cityPreview) cityPreview.textContent = vCity || '-';
+        if (customerNoPreview) customerNoPreview.textContent = vNo || '-';
+        if (sidePreview) sidePreview.textContent = vSide || '-';
+        if (customerPreview) customerPreview.textContent = vCustomer || '-';
+      };
+
+      if (metaEditBtn) {
+        metaEditBtn.addEventListener('click', () => {
+          if (!metaEditing) {
+            if (metaEditCountry) metaEditCountry.value = (mappingCountryInput && mappingCountryInput.value) || '';
+            if (metaEditPostal) metaEditPostal.value = (mappingPostalInput && mappingPostalInput.value) || '';
+            if (metaEditCity) metaEditCity.value = (mappingCityInput && mappingCityInput.value) || '';
+            if (metaEditCustomerNo) metaEditCustomerNo.value = (mappingCustomerNoInput && mappingCustomerNoInput.value) || '';
+            if (metaEditSide) metaEditSide.value = (mappingSideInput && mappingSideInput.value) || '';
+            if (metaEditCustomer) metaEditCustomer.value = (mappingCustomerInput && mappingCustomerInput.value) || '';
+            metaEditing = true;
+            setMetaInlineEditMode(true);
+            setMetaEditButtonState();
+            return;
+          }
+
+          applyMetaEditorValues();
+          syncCustomerPreview();
+          metaEditing = false;
+          setMetaInlineEditMode(false);
+          setMetaEditButtonState();
+        });
+      }
+
+      [metaEditCountry, metaEditPostal, metaEditCity, metaEditCustomerNo, metaEditSide, metaEditCustomer]
+        .filter(Boolean)
+        .forEach((el) => {
+          el.addEventListener('input', applyMetaEditorValues);
+          el.addEventListener('change', applyMetaEditorValues);
+        });
+
+      setMetaInlineEditMode(false);
+      setMetaEditButtonState();
+
+      if (personaSearch) {
+        personaSearch.addEventListener('input', () => {
+          const q = String(personaSearch.value || '').trim().toLowerCase();
+          document.querySelectorAll('#personaPool .pill').forEach((pill) => {
+            const t = String(pill.dataset.role || pill.textContent || '').toLowerCase();
+            pill.style.display = (!q || t.includes(q)) ? '' : 'none';
+          });
+        });
+      }
+
+      const personaPoolEl = document.getElementById('personaPool');
+      const personaTooltip = document.createElement('div');
+      personaTooltip.className = 'persona-tooltip';
+      document.body.appendChild(personaTooltip);
+      let personaTooltipTimer = null;
+      let personaTooltipTarget = null;
+
+      const hidePersonaTooltip = () => {
+        if (personaTooltipTimer) { clearTimeout(personaTooltipTimer); personaTooltipTimer = null; }
+        personaTooltip.style.display = 'none';
+        personaTooltipTarget = null;
+      };
+      const showPersonaTooltip = (pill) => {
+        const persona = String(pill.dataset.role || pill.textContent || '').trim();
+        const mappedRaw = String(pill.dataset.personaRoles || '').trim();
+        const mappedList = mappedRaw
+          ? mappedRaw.split(',').map(x => String(x || '').trim()).filter(Boolean)
+          : [];
+        const lines = mappedList.length
+          ? `<ul style="margin:6px 0 0 16px;padding:0;">${mappedList.map(r => `<li>${r}</li>`).join('')}</ul>`
+          : '<div style="margin-top:6px;">-</div>';
+        personaTooltip.innerHTML = `<strong>${persona}</strong>${lines}`;
+        const rect = pill.getBoundingClientRect();
+        personaTooltip.style.left = `${Math.min(window.innerWidth - 440, Math.max(8, rect.left))}px`;
+        personaTooltip.style.top = `${Math.min(window.innerHeight - 120, rect.bottom + 8)}px`;
+        personaTooltip.style.display = 'block';
+      };
+
+      const bindPersonaTooltipEvents = () => {
+        document.querySelectorAll('#personaPool .pill[data-kind="persona"]').forEach((pill) => {
+          if (pill.dataset.tooltipBound === '1') return;
+          pill.dataset.tooltipBound = '1';
+          pill.addEventListener('mouseenter', () => {
+            hidePersonaTooltip();
+            personaTooltipTarget = pill;
+            personaTooltipTimer = setTimeout(() => {
+              if (personaTooltipTarget === pill) showPersonaTooltip(pill);
+            }, 3000);
+          });
+          pill.addEventListener('mouseleave', () => {
+            hidePersonaTooltip();
+          });
+        });
+      };
+      bindPersonaTooltipEvents();
+      document.addEventListener('scroll', hidePersonaTooltip, true);
+
+      if (rolesSearch) {
+        rolesSearch.addEventListener('input', () => {
+          const q = String(rolesSearch.value || '').trim().toLowerCase();
+          document.querySelectorAll('#rolePool .pill').forEach((pill) => {
+            const t = String(pill.dataset.role || pill.textContent || '').toLowerCase();
+            const show = (!q || t.includes(q));
+            pill.style.display = show ? '' : 'none';
+          });
+        });
+      }
+      const esc = (value) => (window.CSS && CSS.escape) ? CSS.escape(value) : String(value).replace(/(["\\])/g, '\\$1');
+      const getKnownSets = () => ({
+        personas: new Set(Array.from(document.querySelectorAll('#personaPool .pill[data-role]')).map(p => (p.dataset.role||'').trim()).filter(Boolean)),
+        roles: new Set(Array.from(document.querySelectorAll('#rolePool .pill[data-role]')).map(p => (p.dataset.role||'').trim()).filter(Boolean)),
+      });
+      const sanitizeRoleText = (raw) => String(raw || '').replace(/\u0000/g,'').replace(/[<>]/g, m => m === '<' ? '‹' : '›').trim().slice(0,256);
+      const createPoolRoleItem = (role, known = '1') => {
+        const safe = sanitizeRoleText(role);
+        if (!safe) return null;
+        const pill = document.createElement('div');
+        pill.className = 'pill' + (known === '0' ? ' unknown' : '');
+        pill.draggable = true;
+        pill.dataset.role = safe;
+        pill.dataset.kind = 'role';
+        pill.dataset.known = known;
+        pill.textContent = safe;
+        return pill;
+      };
+      const ensurePoolRoleItem = (_pill, _zone) => {};
+      const ensureBucketPillDeleteButtons = () => {
+        document.querySelectorAll('.bucket .pill[data-role]').forEach((p) => {
+          if (p.querySelector('.pill-del-btn')) return;
+          const del = document.createElement('span');
+          del.className = 'pill-del-btn';
+          del.title = 'Zuweisung entfernen';
+          del.textContent = '🗑';
+          del.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const target = ev.currentTarget && ev.currentTarget.parentElement;
+            if (target) target.remove();
+            markUnknownInBuckets();
+          });
+          p.appendChild(del);
+        });
+      };
+
+      const markUnknownInBuckets = () => {
+        const known = getKnownSets();
+        document.querySelectorAll('.bucket .pill[data-role]').forEach((p) => {
+          const role = (p.dataset.role || '').trim();
+          const kind = (p.dataset.kind || '').trim();
+          let isKnown = true;
+          if (kind === 'persona') isKnown = known.personas.has(role);
+          else if (kind === 'role') isKnown = known.roles.has(role);
+          else isKnown = known.personas.has(role) || known.roles.has(role);
+          p.dataset.known = isKnown ? '1' : '0';
+          p.classList.toggle('unknown', !isKnown);
+        });
+
+        if (customRolePool) {
+          const existing = new Set(Array.from(customRolePool.querySelectorAll('.pill[data-role]')).map(p => (p.dataset.role||'').trim()));
+          document.querySelectorAll('.bucket .pill[data-kind="role"][data-known="0"]').forEach((p) => {
+            const role = (p.dataset.role || '').trim();
+            if (!role || existing.has(role)) return;
+            const row = createPoolRoleItem(role, '0');
+            if (!row) return;
+            customRolePool.appendChild(row);
+            existing.add(role);
+          });
+        }
+        ensureBucketPillDeleteButtons();
+      };
+      let dragged = null;
+      document.addEventListener('dragstart', (e) => { const el=e.target.closest('.pill'); if(!el) return; dragged=el; });
+      document.querySelectorAll('.dropzone').forEach((zone) => {
+        zone.addEventListener('dragover', (e) => e.preventDefault());
+        zone.addEventListener('drop', (e) => { e.preventDefault(); if(!dragged) return; const fromZone=(dragged.closest('.dropzone') && dragged.closest('.dropzone').dataset.zone) || ''; const fromPool=fromZone.startsWith('pool-'); const item=fromPool?dragged.cloneNode(true):dragged; item.draggable=true; zone.appendChild(item); ensurePoolRoleItem(item, zone); const role=item.dataset.role; const kind=item.dataset.kind||'persona'; const dupes=[...zone.querySelectorAll('.pill')].filter(p=>p.dataset.role===role && (p.dataset.kind||'persona')===kind); if(dupes.length>1){ if((zone.dataset.zone||'').startsWith('pool-')){ (item.closest('.pool-item') || item).remove(); } else { dupes.slice(1).forEach(x=>(x.closest('.pool-item') || x).remove()); } } markUnknownInBuckets(); });
+      });
+      const copyAssignments = (target) => {
+        const sel=document.querySelector(`.copy-from[data-target="${esc(target)}"]`); const from=sel?sel.value:''; if(!from) return;
+        const srcBucket=document.querySelector(`.bucket[data-source="${esc(from)}"]`); const dstBucket=document.querySelector(`.bucket[data-source="${esc(target)}"]`); if(!srcBucket||!dstBucket) return;
+        dstBucket.innerHTML=''; const items=[]; Array.from(srcBucket.querySelectorAll('.pill')).forEach(p=>{const role=p.dataset.role||''; const kind=p.dataset.kind||'persona'; const known=p.dataset.known||'1'; if(role && !items.find(x=>x.role===role && x.kind===kind)) items.push({role,kind,known});});
+        items.forEach(({role,kind,known})=>{ const el=document.createElement('div'); el.className='pill'+(known==='0'?' unknown':''); el.draggable=true; el.dataset.role=role; el.dataset.kind=kind; el.dataset.known=known; el.textContent=role; dstBucket.appendChild(el); });
+        markUnknownInBuckets();
+      };
+      document.addEventListener('click', (e)=>{
+        const btn=e.target.closest('.copy-btn');
+        if(!btn) return;
+        copyAssignments(btn.dataset.target||'');
+      });
+
+      const sourceWrap = document.getElementById('sourceBucketsWrap');
+      const addSourceRoleBtn = document.getElementById('addSourceRoleBtn');
+      const newSourceRoleInput = document.getElementById('newSourceRoleInput');
+      const sourceRolesSearch = document.getElementById('sourceRolesSearch');
+      const refreshCopySelects = () => {
+        const all = Array.from(document.querySelectorAll('.bucket[data-source]')).map(b=>b.dataset.source);
+        document.querySelectorAll('.copy-from').forEach((sel)=>{
+          const target = sel.dataset.target || '';
+          const current = sel.value || '';
+          sel.innerHTML = '<option value="" data-i18n="selectRole">-- select role --</option>';
+          all.filter(x=>x!==target).forEach((src)=>{
+            const op=document.createElement('option'); op.value=src; op.textContent=src; sel.appendChild(op);
+          });
+          if (current && Array.from(sel.options).some(o=>o.value===current)) sel.value=current;
+        });
+      };
+      const applySourceRoleFilter = () => {
+        const q = String((sourceRolesSearch && sourceRolesSearch.value) || '').trim().toLowerCase();
+        const rows = sourceWrap ? Array.from(sourceWrap.querySelectorAll('.source-bucket-row')) : Array.from(document.querySelectorAll('.source-bucket-row'));
+        rows.forEach((row) => {
+          const dataName = String(row.getAttribute('data-source-row') || '').toLowerCase();
+          const visibleNameEl = row.querySelector('.source-role-name');
+          const visibleName = String((visibleNameEl && visibleNameEl.textContent) || '').toLowerCase();
+          const match = !q || dataName.includes(q) || visibleName.includes(q);
+          row.style.display = match ? '' : 'none';
+        });
+      };
+      const addSourceRole = () => {
+        const raw = (newSourceRoleInput && newSourceRoleInput.value || '').trim();
+        if(!raw) return;
+        const safe = raw.replace(/\u0000/g,'').replace(/[<>]/g, m => m === '<' ? '‹' : '›').slice(0,256);
+        if(!safe) return;
+        if (document.querySelector(`.bucket[data-source="${esc(safe)}"]`)) { if(newSourceRoleInput) newSourceRoleInput.value=''; return; }
+        if(!sourceWrap) return;
+        const hidden=document.createElement('input'); hidden.type='hidden'; hidden.name='source_roles'; hidden.value=safe; sourceWrap.appendChild(hidden);
+        const row=document.createElement('div'); row.className='source-bucket-row'; row.setAttribute('data-source-row',safe); row.style.cssText='margin:10px 0; padding:10px; border:1px solid #dfe7ef; border-radius:10px;';
+        row.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><strong class="source-role-name">${safe}</strong><button type="button" class="source-action-btn source-edit-btn">Ändern</button><span class="source-action-spacer"></span><button type="button" class="source-action-btn source-del-btn">Löschen</button></div>
+          <div style="display:flex; gap:8px; margin:6px 0; flex-wrap:wrap;">
+            <label style="font-size:12px; color:#5f7185;" data-i18n="copyFrom">Copy to this role from:</label>
+            <select class="copy-from" data-target="${safe}"><option value="" data-i18n="selectRole">-- select role --</option></select>
+            <button type="button" class="copy-btn" data-target="${safe}" data-i18n="copyBtn">Copy</button>
+          </div>
+          <div class="dropzone bucket" data-source="${safe}"></div>`;
+        sourceWrap.appendChild(row);
+        row.querySelectorAll('.dropzone').forEach((zone)=>{
+          zone.addEventListener('dragover',(e)=>e.preventDefault());
+          zone.addEventListener('drop',(e)=>{ e.preventDefault(); if(!dragged) return; const fromZone=(dragged.closest('.dropzone') && dragged.closest('.dropzone').dataset.zone) || ''; const fromPool=fromZone.startsWith('pool-'); const item=fromPool?dragged.cloneNode(true):dragged; item.draggable=true; zone.appendChild(item); ensurePoolRoleItem(item, zone); const role=item.dataset.role; const kind=item.dataset.kind||'persona'; const dupes=[...zone.querySelectorAll('.pill')].filter(p=>p.dataset.role===role && (p.dataset.kind||'persona')===kind); if(dupes.length>1){ if((zone.dataset.zone||'').startsWith('pool-')){ (item.closest('.pool-item') || item).remove(); } else { dupes.slice(1).forEach(x=>(x.closest('.pool-item') || x).remove()); } } markUnknownInBuckets(); });
+        });
+        refreshCopySelects();
+        applySourceRoleFilter();
+        if(newSourceRoleInput) newSourceRoleInput.value='';
+      };
+      if(addSourceRoleBtn) addSourceRoleBtn.addEventListener('click', addSourceRole);
+      if(newSourceRoleInput) newSourceRoleInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addSourceRole(); } });
+      if(sourceRolesSearch) {
+        sourceRolesSearch.addEventListener('input', applySourceRoleFilter);
+        sourceRolesSearch.addEventListener('keyup', applySourceRoleFilter);
+      }
+
+      const showSourceRolesListBtn = document.getElementById('showSourceRolesListBtn');
+      const sourceRolesModal = document.getElementById('sourceRolesModal');
+      const closeSourceRolesModalBtn = document.getElementById('closeSourceRolesModalBtn');
+      const sourceRolesListUl = document.getElementById('sourceRolesListUl');
+      const sourceRolesListCount = document.getElementById('sourceRolesListCount');
+
+      const fillSourceRolesList = () => {
+        if (!sourceRolesListUl) return;
+        const roles = Array.from(document.querySelectorAll('.bucket[data-source]')).map(b => String(b.dataset.source||'').trim()).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+        sourceRolesListUl.innerHTML = roles.map(r => `<li>${r}</li>`).join('');
+        if (sourceRolesListCount) sourceRolesListCount.textContent = String(roles.length);
+      };
+      const openSourceRolesModal = () => {
+        fillSourceRolesList();
+        if (sourceRolesModal) {
+          sourceRolesModal.classList.add('open');
+          sourceRolesModal.setAttribute('aria-hidden','false');
+        }
+      };
+      const closeSourceRolesModal = () => {
+        if (sourceRolesModal) {
+          sourceRolesModal.classList.remove('open');
+          sourceRolesModal.setAttribute('aria-hidden','true');
+        }
+      };
+      if (showSourceRolesListBtn) showSourceRolesListBtn.addEventListener('click', openSourceRolesModal);
+      if (closeSourceRolesModalBtn) closeSourceRolesModalBtn.addEventListener('click', closeSourceRolesModal);
+      if (sourceRolesModal) sourceRolesModal.addEventListener('click', (e) => { if (e.target === sourceRolesModal) closeSourceRolesModal(); });
+
+      const bulkAssignZone = document.getElementById('bulkAssignZone');
+      if (bulkAssignZone) {
+        bulkAssignZone.addEventListener('dragover', (e) => e.preventDefault());
+        bulkAssignZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (!dragged) return;
+          const role = String(dragged.dataset.role || '').trim();
+          const kind = String(dragged.dataset.kind || 'persona').trim() || 'persona';
+          if (!role) return;
+
+          const known = getKnownSets();
+          let knownFlag = '1';
+          if (kind === 'persona') knownFlag = known.personas.has(role) ? '1' : '0';
+          else if (kind === 'role') knownFlag = known.roles.has(role) ? '1' : '0';
+
+          const rows = sourceWrap ? Array.from(sourceWrap.querySelectorAll('.source-bucket-row')) : [];
+          const visibleRows = rows.filter((row) => row.style.display !== 'none');
+          let added = 0;
+
+          visibleRows.forEach((row) => {
+            const bucket = row.querySelector('.bucket[data-source]');
+            if (!bucket) return;
+            const exists = Array.from(bucket.querySelectorAll('.pill')).some((p) => (p.dataset.role||'') === role && (p.dataset.kind||'persona') === kind);
+            if (exists) return;
+            const el = document.createElement('div');
+            el.className = 'pill' + (knownFlag === '0' ? ' unknown' : '');
+            el.draggable = true;
+            el.dataset.role = role;
+            el.dataset.kind = kind;
+            el.dataset.known = knownFlag;
+            el.textContent = role;
+            bucket.appendChild(el);
+            added += 1;
+          });
+
+          markUnknownInBuckets();
+          bulkAssignZone.title = added > 0 ? (`${role}: ${added} Zuweisungen ergänzt`) : (`${role}: keine neuen Zuweisungen`);
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.source-edit-btn');
+        if (editBtn) {
+          const row = editBtn.closest('.source-bucket-row');
+          if (!row) return;
+
+          const isEditing = row.getAttribute('data-editing') === '1';
+          if (!isEditing) {
+            const titleEl = row.querySelector('.source-role-name');
+            if (!titleEl) return;
+            const oldName = (row.getAttribute('data-source-row') || '').trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'source-edit-input';
+            input.style.cssText = 'padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;min-width:260px;';
+            input.value = oldName;
+            titleEl.replaceWith(input);
+            editBtn.textContent = 'OK';
+            row.setAttribute('data-editing', '1');
+            input.focus();
+            input.select();
+            input.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); editBtn.click(); } if(ev.key==='Escape'){ ev.preventDefault(); row.setAttribute('data-editing','0'); const span=document.createElement('strong'); span.className='source-role-name'; span.textContent=oldName; input.replaceWith(span); editBtn.textContent='Ändern'; }});
+            return;
+          }
+
+          const input = row.querySelector('.source-edit-input');
+          const oldName = (row.getAttribute('data-source-row') || '').trim();
+          const nextNameRaw = sanitizeRoleText(input ? input.value : oldName);
+          const nextName = nextNameRaw || oldName;
+          if (nextName !== oldName && document.querySelector(`.source-bucket-row[data-source-row="${esc(nextName)}"]`)) { alert('Rolle existiert bereits.'); return; }
+
+          row.setAttribute('data-source-row', nextName);
+          const span = document.createElement('strong');
+          span.className = 'source-role-name';
+          span.textContent = nextName;
+          if (input) input.replaceWith(span);
+          const hidden = sourceWrap ? sourceWrap.querySelector(`input[name="source_roles"][value="${esc(oldName)}"]`) : null;
+          if (hidden) hidden.value = nextName;
+          const bucket = row.querySelector('.bucket[data-source]');
+          if (bucket) bucket.setAttribute('data-source', nextName);
+          const sel = row.querySelector('.copy-from[data-target]');
+          if (sel) sel.setAttribute('data-target', nextName);
+          document.querySelectorAll('.copy-from option').forEach((op)=>{ if (op.value === oldName) { op.value = nextName; op.textContent = nextName; } });
+          row.setAttribute('data-editing', '0');
+          editBtn.textContent = 'Ändern';
+          refreshCopySelects();
+            applySourceRoleFilter();
+          return;
+        }
+        const delBtn = e.target.closest('.source-del-btn');
+        if (delBtn) {
+          const row = delBtn.closest('.source-bucket-row');
+          if (!row) return;
+          const name = (row.getAttribute('data-source-row') || '').trim();
+          const hidden = sourceWrap ? sourceWrap.querySelector(`input[name="source_roles"][value="${esc(name)}"]`) : null;
+          if (hidden) hidden.remove();
+          row.remove();
+          refreshCopySelects();
+            applySourceRoleFilter();
+        }
+      });
+
+      const addCustomRoles = () => {
+        const raw = (customRolesInput && customRolesInput.value || '').trim();
+        if (!raw || !customRolePool) return;
+        const chunks = raw.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+        const existing = new Set(Array.from(customRolePool.querySelectorAll('.pill[data-role]')).map(p => (p.dataset.role||'').trim()));
+        chunks.forEach((r) => {
+          const safe = r.replace(/\u0000/g,'').replace(/[<>]/g, m => m === '<' ? '‹' : '›').slice(0,256);
+          if (!safe || existing.has(safe)) return;
+          const el = document.createElement('div');
+          el.className = 'pill unknown';
+          el.draggable = true;
+          el.dataset.role = safe;
+          el.dataset.kind = 'role';
+          el.dataset.known = '0';
+          el.textContent = safe;
+          customRolePool.appendChild(el);
+          existing.add(safe);
+        });
+        customRolesInput.value = '';
+      };
+      if (addCustomRolesBtn) addCustomRolesBtn.addEventListener('click', addCustomRoles);
+      if (customRolesInput) customRolesInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); addCustomRoles(); }});
+
+      refreshCopySelects();
+      applySourceRoleFilter();
+
+      const form=document.getElementById('assignForm');
+      markUnknownInBuckets();
+
+      if(form) form.addEventListener('submit', (ev)=>{
+
+        const tsEl = document.getElementById('mapping_client_ts');
+        if (tsEl) tsEl.value = new Date().toISOString();
+        const data={};
+        document.querySelectorAll('.bucket[data-source]').forEach((b)=>{
+          const personas=[]; const roles=[];
+          Array.from(b.querySelectorAll('.pill')).forEach(p=>{
+            const val=(p.dataset.role||'').trim();
+            const kind=(p.dataset.kind||'persona').trim();
+            if(!val) return;
+            if(kind==='role'){ if(!roles.includes(val)) roles.push(val); }
+            else { if(!personas.includes(val)) personas.push(val); }
+          });
+          data[b.dataset.source]={personas,roles};
+        });
+        document.getElementById('assignments_json').value=JSON.stringify(data);
+
+      });
+
+      const openLoginBtn = document.getElementById('openLoginBtn');
+      const authModal = document.getElementById('authModal');
+      const authCloseBtn = document.getElementById('authCloseBtn');
+      const authScope = document.getElementById('authScope');
+      const authLangWrap = document.getElementById('authLangWrap');
+      const forcedScope = '{{ login_scope or "" }}';
+
+      const syncAuthFields = () => {
+        if (!authScope || !authLangWrap) return;
+        const isI18n = authScope.value === 'i18n';
+        authLangWrap.style.display = isI18n ? '' : 'none';
+        if (forcedScope === 'admin' || forcedScope === 'i18n') {
+          authScope.value = forcedScope;
+          authScope.disabled = true;
+          authLangWrap.style.display = (forcedScope === 'i18n') ? '' : 'none';
+        }
+      };
+      syncAuthFields();
+      if (authScope) authScope.addEventListener('change', syncAuthFields);
+
+      if (openLoginBtn && authModal && openLoginBtn.getAttribute('href') === '#') {
+        openLoginBtn.addEventListener('click', (e) => { e.preventDefault(); authModal.classList.add('open'); authModal.setAttribute('aria-hidden','false'); syncAuthFields(); });
+      }
+      if (authCloseBtn && authModal) {
+        authCloseBtn.addEventListener('click', () => { authModal.classList.remove('open'); authModal.setAttribute('aria-hidden','true'); });
+      }
+      if (authModal) {
+        authModal.addEventListener('click', (e)=>{ if(e.target===authModal){ authModal.classList.remove('open'); authModal.setAttribute('aria-hidden','true'); } });
+      }
+      if ({{ 'true' if login_scope else 'false' }}) {
+        authModal && authModal.classList.add('open');
+        syncAuthFields();
+      }
+
+
+      const insiderLink = document.getElementById('insiderHintLink');
+      const insiderModal = document.getElementById('insiderModal');
+      const insiderCloseBtn = document.getElementById('insiderCloseBtn');
+      if (insiderLink && insiderModal) {
+        insiderLink.addEventListener('click', () => {
+          insiderModal.classList.add('open');
+          insiderModal.setAttribute('aria-hidden', 'false');
+        });
+      }
+      if (insiderCloseBtn && insiderModal) {
+        insiderCloseBtn.addEventListener('click', () => { insiderModal.classList.remove('open'); insiderModal.setAttribute('aria-hidden', 'true'); });
+      }
+      if (insiderModal) {
+        insiderModal.addEventListener('click', (e) => {
+          if (e.target === insiderModal) {
+            insiderModal.classList.remove('open');
+            insiderModal.setAttribute('aria-hidden', 'true');
+          }
+        });
+      }
+
+      const menuBtn = document.getElementById('hamburgerBtn');
+      const sidebar = document.querySelector('.sidebar');
+      const overlay = document.getElementById('overlay');
+      const closeMenu = () => { sidebar && sidebar.classList.remove('open'); overlay && overlay.classList.remove('show'); };
+      if(menuBtn && sidebar && overlay){
+        menuBtn.addEventListener('click', ()=>{ sidebar.classList.toggle('open'); overlay.classList.toggle('show'); });
+        overlay.addEventListener('click', closeMenu);
+        window.addEventListener('resize', ()=>{ if(window.innerWidth > 980) closeMenu(); });
+      }
+    })();
+  </script>
+  <script>
+    (function(){
+      const roleI18n={
+        de:{label:'Rolle:',admin:'Admin',localizer:'Lokalisierer'},
+        en:{label:'Role:',admin:'Admin',localizer:'Localizer'},
+        it:{label:'Ruolo:',admin:'Admin',localizer:'Localizzatore'},
+        fr:{label:'Rôle :',admin:'Admin',localizer:'Localisateur'},
+        pt:{label:'Função:',admin:'Admin',localizer:'Localizador'},
+        es:{label:'Rol:',admin:'Admin',localizer:'Localizador'}
+      };
+      const applyRoleLang=(lang)=>{
+        const d=roleI18n[lang]||roleI18n.de;
+        document.querySelectorAll('.role-label').forEach(el=>el.textContent=d.label);
+        document.querySelectorAll('.role-value[data-role]').forEach(el=>{const r=el.getAttribute('data-role'); if(d[r]) el.textContent=d[r];});
+      };
+      const sw=document.getElementById('langSwitch');
+      const current=(sw&&sw.value)||localStorage.getItem('rolemapper_lang')||'de';
+      applyRoleLang(current);
+      if(sw){ sw.addEventListener('change',()=>setTimeout(()=>applyRoleLang(sw.value||'de'),0)); }
+    })();
+  </script>
+
+</body>
+</html>

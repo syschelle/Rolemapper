@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <title data-i18n="server.title">Server-Mappings</title>
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --text:#1e2a39; --line:#d9e2ec; --accent:#0d6efd; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Calibri,Arial,sans-serif; color:var(--text); background:var(--bg); }
+    .header { height:64px; background:#0d3b66; color:#fff; display:flex; align-items:center; gap:10px; padding:0 18px; font-size:20px; font-weight:700; position:sticky; top:0; z-index:40; }
+    .title-wrap{display:inline-flex; align-items:baseline; gap:0; white-space:nowrap;}
+    .hamburger { display:none; background:transparent; border:0; color:#fff; font-size:20px; cursor:pointer; }
+    .layout { display:grid; grid-template-columns:260px 1fr; min-height:calc(100vh - 64px); }
+    .sidebar { border-right:1px solid var(--line); background:#fff; padding:14px; position:sticky; top:64px; height:calc(100vh - 64px); overflow:auto; }
+    .menu a { display:block; padding:8px 10px; border-radius:8px; color:#0d3b66; text-decoration:none; margin:2px 0; }
+    .menu a:hover { background:#eef4ff; }
+    .content { padding:18px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+    .muted { color:#5f7185; }
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .filters input{padding:8px;border:1px solid #d9e2ec;border-radius:8px;min-width:180px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{border:1px solid #dfe7ef; padding:8px; font-size:14px; text-align:left; vertical-align:top}
+    th{background:#f0f5fb}
+    .btn{background:#fff; color:#0d3b66; border:1px solid #d9e2ec; border-radius:8px; padding:8px 10px; cursor:pointer; text-decoration:none; display:inline-block}
+    .btn:hover{background:#eef4ff;color:#0d3b66;}
+    .btn-danger{display:inline-block;padding:8px 10px;border:1px solid #f3c2c2;border-radius:8px;background:#fff5f5;color:#9b1c1c;cursor:pointer;text-decoration:none;}
+    .btn-danger:hover{background:#ffe3e3;color:#7f1d1d;}
+    .overlay{display:none}
+    @media (max-width: 980px){
+      .hamburger{display:inline-block}
+      .layout{grid-template-columns:1fr}
+      .sidebar{position:fixed;left:-280px;top:64px;width:260px;height:calc(100vh - 64px);z-index:30;transition:left .2s ease}
+      .sidebar.open{left:0}
+      .overlay{display:none;position:fixed;inset:64px 0 0 0;background:rgba(0,0,0,.35);z-index:25}
+      .overlay.show{display:block}
+    }
+  </style>
+</head>
+<body>
+  {% set page_title_default = 'Server-Mappings' %}
+  {% set header_login_href = '/' %}
+  {% include '_header.html' %}
+  <div class="layout">
+    {% include '_sidebar.html' %}
+    <div class="overlay" id="overlay"></div>
+
+    <main class="content">
+      <div class="card">
+        <p class="muted" data-i18n="server.hint">Kein Mapping-Inhalt wird angezeigt. Datum/Uhrzeit nutzt primär Browserzeit (Fallback: Serverzeit).</p>
+        <div class="filters">
+          <select id="fCountry" style="padding:8px;border:1px solid #d9e2ec;border-radius:8px;min-width:180px;">
+            <option value="" data-i18n="server.searchCountry">Suche Land (z.B. DE)</option>
+            {% set countries = mapping_entries | map(attribute='country') | list %}
+            {% for c in countries | reject('equalto', '') | unique | sort %}
+            <option value="{{ c|lower }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+          <input id="fPostal" type="text" data-i18n-placeholder="server.searchPostal" placeholder="Suche PLZ">
+          <input id="fCity" type="text" data-i18n-placeholder="server.searchCity" placeholder="Suche Stadt">
+          <input id="fCustomerNo" type="text" data-i18n-placeholder="server.searchCustomerNo" placeholder="Suche Kundennummer">
+          <input id="fCustomer" type="text" data-i18n-placeholder="server.searchCustomer" placeholder="Suche Kunde">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="server.colAction">Aktion</th>
+              <th data-i18n="server.colTxt">TXT</th>
+              <th data-i18n="server.colCode">Code</th>
+              <th data-i18n="server.colCountry">Land</th>
+              <th data-i18n="server.colPostal">PLZ</th>
+              <th data-i18n="server.colCity">Stadt</th>
+              <th data-i18n="server.colCustomerNo">Kundennummer</th>
+              <th data-i18n="server.colSide">Standort</th>
+              <th data-i18n="server.colCustomer">Kunde</th>
+              <th data-i18n="server.colLines">Zeilen</th>
+              {% if auth_admin %}<th data-i18n="server.colDelete">Löschen</th>{% endif %}
+              <th data-i18n="server.colUpdated">Zuletzt geändert</th>
+            </tr>
+          </thead>
+          <tbody id="mappingRows">
+            {% for e in mapping_entries %}
+            <tr data-country="{{ (e.country or '')|lower }}" data-postal="{{ (e.postal_code or '')|lower }}" data-city="{{ (e.city or '')|lower }}" data-customer-no="{{ (e.customer_no or '')|lower }}" data-customer="{{ (e.customer or '')|lower }}">
+              <td><form method="get" action="/" style="margin:0;"><input type="hidden" name="load_mapping_code" value="{{ e.code }}"><button class="btn" type="submit" data-i18n="server.btnLoad">Laden</button></form></td>
+              <td><a class="btn" href="/download-mapping-plus/{{ e.code }}">TXT</a></td>
+              <td>{{ e.code }}</td>
+              <td>{{ e.country or '-' }}</td>
+              <td>{{ e.postal_code or '-' }}</td>
+              <td>{{ e.city or '-' }}</td>
+              <td>{{ e.customer_no or '-' }}</td>
+              <td>{{ e.side or '-' }}</td>
+              <td>{{ e.customer or '-' }}</td>
+              <td>{% if e.line_count and e.line_count != '-' %}<a href="#" class="btn lines-link" data-code="{{ e.code }}" data-country="{{ e.country or '-' }}" data-postal="{{ e.postal_code or '-' }}" data-city="{{ e.city or '-' }}" data-customer-no="{{ e.customer_no or '-' }}" data-side="{{ e.side or '-' }}" data-customer="{{ e.customer or '-' }}">{{ e.line_count }}</a>{% else %}-{% endif %}</td>
+              {% if auth_admin %}<td><button type="button" class="btn-danger delete-row" data-code="{{ e.code }}" data-i18n="persona_names.delete">Löschen</button></td>{% endif %}
+              <td><span class="ts" data-client="{{ e.client_ts or '' }}" data-server="{{ e.server_ts or '' }}">-</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="{{ 12 if auth_admin else 11 }}" class="muted" data-i18n="server.empty">Keine gespeicherten Mappings gefunden.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const I18N = {
+      de:{menu:'Menü / Navigation','nav.main':'Hauptseite','nav.serverMappings':'Server-Mappings','nav.guide':'Anleitung / Guide','nav.personaConfig':'Persona-Konfiguration','nav.roles':'Rollenliste bearbeiten','nav.personaNames':'Persona-Liste bearbeiten','nav.i18n':'Lokalisierungstexte bearbeiten','nav.changelog':'Changelog','server.title':'Server-Mappings','server.hint':'Kein Mapping-Inhalt wird angezeigt. Datum/Uhrzeit nutzt primär Browserzeit (Fallback: Serverzeit).','server.searchCountry':'Suche Land (z.B. DE)','server.searchPostal':'Suche PLZ','server.searchCity':'Suche Stadt','server.searchCustomerNo':'Suche Kundennummer','server.searchCustomer':'Suche Kunde','server.colAction':'Aktion','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Land','server.colPostal':'PLZ','server.colCity':'Stadt','server.colCustomerNo':'Kundennummer','server.colSide':'Standort','server.colCustomer':'Kunde','server.colLines':'Zeilen','server.colDelete':'Löschen','server.btnDelete':'Zeile löschen','server.colUpdated':'Zuletzt geändert','server.btnLoad':'Laden','server.empty':'Keine gespeicherten Mappings gefunden.','server.linesOpen':'Öffnen','server.popupTitle':'Mapping-Inhalt','server.popupFailed':'Mapping-Inhalt konnte nicht geladen werden.','login':'Login','logout':'Logout','login.role':'Rolle'},
+      en:{menu:'Menu / Navigation','nav.main':'Main page','nav.serverMappings':'Server mappings','nav.guide':'Guide','nav.personaConfig':'Persona configuration','nav.roles':'Edit roles list','nav.personaNames':'Edit persona names','nav.i18n':'Edit localization texts','nav.changelog':'Changelog','server.title':'Server mappings','server.hint':'No mapping content is shown. Date/time primarily uses browser time (fallback: server time).','server.searchCountry':'Search country (e.g. DE)','server.searchPostal':'Search ZIP','server.searchCity':'Search city','server.searchCustomerNo':'Search customer no.','server.searchCustomer':'Search customer','server.colAction':'Action','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Country','server.colPostal':'ZIP','server.colCity':'City','server.colCustomerNo':'Customer no.','server.colSide':'Location','server.colCustomer':'Customer','server.colLines':'Lines','server.colDelete':'Delete','server.btnDelete':'Delete line','server.colUpdated':'Last updated','server.btnLoad':'Load','server.empty':'No saved mappings found.','server.linesOpen':'Open','server.popupTitle':'Mapping content','server.popupFailed':'Failed to load mapping content.','login':'Login','logout':'Logout','login.role':'Role'},
+      it:{menu:'Menu / Navigazione','nav.main':'Pagina principale','nav.serverMappings':'Mapping server','nav.guide':'Guida','nav.personaConfig':'Configurazione persona','nav.roles':'Modifica elenco ruoli','nav.personaNames':'Modifica elenco persona','nav.i18n':'Modifica testi localizzazione','nav.changelog':'Changelog','server.title':'Mapping server','server.hint':'Il contenuto del mapping non viene mostrato. Data/ora usa principalmente l\'ora del browser (fallback: ora server).','server.searchCountry':'Cerca paese (es. DE)','server.searchPostal':'Cerca CAP','server.searchCity':'Cerca città','server.searchCustomerNo':'Cerca numero cliente','server.searchCustomer':'Cerca cliente','server.colAction':'Azione','server.colTxt':'TXT','server.colCode':'Codice','server.colCountry':'Paese','server.colPostal':'CAP','server.colCity':'Città','server.colCustomerNo':'Numero cliente','server.colSide':'Sede','server.colCustomer':'Cliente','server.colLines':'Righe','server.colDelete':'Elimina','server.btnDelete':'Elimina riga','server.colUpdated':'Ultima modifica','server.btnLoad':'Carica','server.empty':'Nessun mapping salvato trovato.','server.linesOpen':'Apri','server.popupTitle':'Contenuto mapping','server.popupFailed':'Impossibile caricare il contenuto del mapping.','login':'Login','logout':'Logout','login.role':'Ruolo'},
+      fr:{menu:'Menu / Navigation','nav.main':'Page principale','nav.serverMappings':'Mappings serveur','nav.guide':'Guide','nav.personaConfig':'Configuration des personas','nav.roles':'Modifier la liste des rôles','nav.personaNames':'Modifier la liste des personas','nav.i18n':'Modifier les textes de localisation','nav.changelog':'Changelog','server.title':'Mappings serveur','server.hint':'Le contenu du mapping n\'est pas affiché. Date/heure utilise d\'abord l\'heure du navigateur (fallback : serveur).','server.searchCountry':'Rechercher pays (ex. DE)','server.searchPostal':'Rechercher CP','server.searchCity':'Rechercher ville','server.searchCustomerNo':'Rechercher n° client','server.searchCustomer':'Rechercher client','server.colAction':'Action','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Pays','server.colPostal':'CP','server.colCity':'Ville','server.colCustomerNo':'N° client','server.colSide':'Site','server.colCustomer':'Client','server.colLines':'Lignes','server.colDelete':'Supprimer','server.btnDelete':'Supprimer ligne','server.colUpdated':'Dernière modification','server.btnLoad':'Charger','server.empty':'Aucun mapping enregistré trouvé.','server.linesOpen':'Ouvrir','server.popupTitle':'Contenu du mapping','server.popupFailed':'Impossible de charger le contenu du mapping.','login':'Connexion','logout':'Déconnexion','login.role':'Rôle'},
+      pt:{menu:'Menu / Navegação','nav.main':'Página principal','nav.serverMappings':'Mapeamentos do servidor','nav.guide':'Guia','nav.personaConfig':'Configuração de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localização','nav.changelog':'Changelog','server.title':'Mapeamentos do servidor','server.hint':'O conteúdo do mapping não é exibido. Data/hora usa principalmente o horário do navegador (fallback: servidor).','server.searchCountry':'Buscar país (ex. DE)','server.searchPostal':'Buscar CEP','server.searchCity':'Buscar cidade','server.searchCustomerNo':'Buscar nº do cliente','server.searchCustomer':'Buscar cliente','server.colAction':'Ação','server.colTxt':'TXT','server.colCode':'Código','server.colCountry':'País','server.colPostal':'CEP','server.colCity':'Cidade','server.colCustomerNo':'Nº cliente','server.colSide':'Local','server.colCustomer':'Cliente','server.colLines':'Linhas','server.colDelete':'Excluir','server.btnDelete':'Excluir linha','server.colUpdated':'Última alteração','server.btnLoad':'Carregar','server.empty':'Nenhum mapping salvo encontrado.','server.linesOpen':'Abrir','server.popupTitle':'Conteúdo do mapping','server.popupFailed':'Falha ao carregar o conteúdo do mapping.','login':'Login','logout':'Logout','login.role':'Função'},
+      es:{menu:'Menú / Navegación','nav.main':'Página principal','nav.serverMappings':'Mapeos del servidor','nav.guide':'Guía','nav.personaConfig':'Configuración de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localización','nav.changelog':'Changelog','server.title':'Mapeos del servidor','server.hint':'No se muestra el contenido del mapping. Fecha/hora usa principalmente la hora del navegador (fallback: servidor).','server.searchCountry':'Buscar país (p.ej. DE)','server.searchPostal':'Buscar CP','server.searchCity':'Buscar ciudad','server.searchCustomerNo':'Buscar nº cliente','server.searchCustomer':'Buscar cliente','server.colAction':'Acción','server.colTxt':'TXT','server.colCode':'Código','server.colCountry':'País','server.colPostal':'CEP','server.colCity':'Cidade','server.colCustomerNo':'Nº cliente','server.colSide':'Ubicación','server.colCustomer':'Cliente','server.colLines':'Líneas','server.colDelete':'Eliminar','server.btnDelete':'Eliminar línea','server.colUpdated':'Última actualización','server.btnLoad':'Cargar','server.empty':'No se encontraron mapeos guardados.','server.linesOpen':'Abrir','server.popupTitle':'Contenido del mapping','server.popupFailed':'No se pudo cargar el contenido del mapping.','login':'Iniciar sesión','logout':'Cerrar sesión','login.role':'Rol'}
+    };
+    const overrides = {{ i18n_overrides|tojson|safe }};
+    const merged = (lang)=>Object.assign({}, I18N[lang]||I18N.en, (overrides && overrides[lang])||{});
+    const applyLang=(lang)=>{
+      const t=merged(lang);
+      document.documentElement.setAttribute('lang', lang);
+      document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n'); if(t[k]!=null) el.textContent=t[k];});
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const k=el.getAttribute('data-i18n-placeholder'); if(t[k]!=null) el.setAttribute('placeholder', t[k]);});
+      const titleEl=document.querySelector('title[data-i18n]'); if(titleEl){const k=titleEl.getAttribute('data-i18n'); if(t[k]) titleEl.textContent=t[k];}
+      document.querySelectorAll('a[href]').forEach(a=>{ try{const u=new URL(a.getAttribute('href'), location.origin); if(u.origin===location.origin){u.searchParams.set('lang',lang); a.setAttribute('href',u.pathname+u.search);} }catch(e){} });
+      localStorage.setItem('rolemapper_lang',lang); document.cookie='rolemapper_lang='+lang+'; path=/; max-age='+(60*60*24*365);
+    };
+
+    const initial=(new URLSearchParams(location.search).get('lang')||localStorage.getItem('rolemapper_lang')||'de').toLowerCase();
+    const langSwitch=document.getElementById('langSwitch');
+    if(langSwitch){langSwitch.value=initial; langSwitch.addEventListener('change',()=>applyLang(langSwitch.value));}
+    applyLang(initial);
+    const IS_ADMIN = {{ "true" if auth_admin else "false" }};
+
+    const menuBtn=document.getElementById('hamburgerBtn');
+    const sidebar=document.querySelector('.sidebar');
+    const overlay=document.getElementById('overlay');
+    const closeMenu=()=>{sidebar&&sidebar.classList.remove('open'); overlay&&overlay.classList.remove('show');};
+    if(menuBtn && sidebar && overlay){menuBtn.addEventListener('click',()=>{sidebar.classList.toggle('open');overlay.classList.toggle('show');});overlay.addEventListener('click',closeMenu);}   
+
+    document.querySelectorAll('.ts').forEach(el=>{const raw=(el.dataset.client||'').trim()||(el.dataset.server||'').trim(); if(!raw){el.textContent='-';return;} const d=new Date(raw); el.textContent=isNaN(d.getTime())?raw:d.toLocaleString();});
+    const fCountry=document.getElementById('fCountry'),fPostal=document.getElementById('fPostal'),fCity=document.getElementById('fCity'),fCustomerNo=document.getElementById('fCustomerNo'),fCustomer=document.getElementById('fCustomer');
+    const rows=[...document.querySelectorAll('#mappingRows tr[data-country]')];
+    const applyFilter=()=>{const c=(fCountry.value||'').trim().toLowerCase();const p=(fPostal.value||'').trim().toLowerCase();const y=(fCity.value||'').trim().toLowerCase();const n=(fCustomerNo.value||'').trim().toLowerCase();const k=(fCustomer.value||'').trim().toLowerCase();rows.forEach(r=>{const okC=!c||(r.dataset.country||'').includes(c);const okP=!p||(r.dataset.postal||'').includes(p);const okY=!y||(r.dataset.city||'').includes(y);const okN=!n||(r.dataset.customerNo||'').includes(n);const okK=!k||(r.dataset.customer||'').includes(k);r.style.display=(okC&&okP&&okY&&okN&&okK)?'':'none';});};
+    if (fCountry) fCountry.addEventListener('change', applyFilter);
+    [fPostal,fCity,fCustomerNo,fCustomer].forEach(i=>i&&i.addEventListener('input',applyFilter));
+    applyFilter();
+
+    document.querySelectorAll('.delete-row').forEach((btn)=>{
+      btn.addEventListener('click', async ()=>{
+        const code = (btn.dataset.code || '').trim();
+        if(!code) return;
+        if(!confirm(`Mapping ${code} wirklich löschen?`)) return;
+        try {
+          const body = new URLSearchParams({ code });
+          const res = await fetch('/admin-mappings-delete-code', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+          const data = await res.json();
+          if(!res.ok || !data.ok) throw new Error('delete_failed');
+          const tr = btn.closest('tr');
+          if(tr) tr.remove();
+        } catch(e) {
+          alert(getT('server.popupFailed'));
+        }
+      });
+    });
+
+    const getT = (key) => {
+      const lang = (document.documentElement.getAttribute('lang') || 'de').toLowerCase();
+      const dict = Object.assign({}, I18N[lang] || I18N.en, (overrides && overrides[lang]) || {});
+      return dict[key] || key;
+    };
+
+    document.querySelectorAll('.lines-link').forEach((a)=>{
+      a.addEventListener('click', async (ev)=>{
+        ev.preventDefault();
+        const code = (a.dataset.code || '').trim();
+        if(!code) return;
+        try {
+          const res = await fetch(`/mapping-plus-content/${encodeURIComponent(code)}`);
+          const data = await res.json();
+          if(!res.ok || !data.ok) throw new Error('load_failed');
+          const w = window.open('', '_blank', 'width=900,height=700,resizable=yes,scrollbars=yes');
+          if(!w) return;
+          const title = `${getT('server.popupTitle')} ${code}`;
+          const info = {
+            country: a.dataset.country || '-',
+            postal: a.dataset.postal || '-',
+            city: a.dataset.city || '-',
+            customerNo: a.dataset.customerNo || '-',
+            side: a.dataset.side || '-',
+            customer: a.dataset.customer || '-',
+          };
+          const lines = String(data.content || '').split(/\r?\n/);
+
+          w.document.open();
+          w.document.write('<!doctype html><html><head><meta charset="utf-8"><title></title></head><body></body></html>');
+          w.document.close();
+          w.document.title = title;
+
+          const doc = w.document;
+          const style = doc.createElement('style');
+          style.textContent = 'body{font-family:Calibri,Arial,sans-serif;padding:14px;margin:0;background:#fff;color:#1e2a39;}h3{margin:0 0 10px 0;}h4{margin:0 0 8px 0;color:#0d3b66;}.box{border:1px solid #dfe7ef;border-radius:10px;padding:12px;background:#fafcff;margin-bottom:12px;}.grid{display:grid;grid-template-columns:repeat(2,minmax(200px,1fr));gap:6px 16px;font-size:14px;}.k{color:#5f7185;}.search{width:360px;max-width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;margin:0 0 10px 0;}.list{border:1px solid #dfe7ef;border-radius:8px;background:#fff;max-height:480px;overflow:auto;}.line{font-family:Consolas,Monaco,monospace;padding:6px 10px;border-bottom:1px solid #eef2f7;white-space:pre-wrap;word-break:break-word;display:flex;gap:8px;align-items:flex-start;}.line:last-child{border-bottom:none;}.line-text{flex:1;}.line-del{font-size:11px;padding:2px 6px;border:1px solid #f3c2c2;background:#fff5f5;color:#9b1c1c;border-radius:6px;cursor:pointer;}.muted{color:#5f7185;font-size:12px;margin-top:6px;}';
+          doc.head.appendChild(style);
+
+          const h3 = doc.createElement('h3');
+          h3.textContent = title;
+          doc.body.appendChild(h3);
+
+          const boxInfo = doc.createElement('div');
+          boxInfo.className = 'box';
+          boxInfo.innerHTML = `<h4>Kundeninformationen</h4><div class="grid"><div><span class="k">Land:</span> ${info.country}</div><div><span class="k">PLZ:</span> ${info.postal}</div><div><span class="k">Stadt:</span> ${info.city}</div><div><span class="k">Kundennummer:</span> ${info.customerNo}</div><div><span class="k">${getT('server.colSide')}:</span> ${info.side}</div><div><span class="k">Kunde:</span> ${info.customer}</div></div>`;
+          doc.body.appendChild(boxInfo);
+
+          const boxMap = doc.createElement('div');
+          boxMap.className = 'box';
+          boxMap.innerHTML = `<h4>${getT('server.popupTitle')}</h4><input id="mapSearch" class="search" placeholder="Suche in Mapping-Zeilen..." /><div id="mapList" class="list"></div><div id="mapCount" class="muted"></div>`;
+          doc.body.appendChild(boxMap);
+
+          const list = doc.getElementById('mapList');
+          const search = doc.getElementById('mapSearch');
+          const count = doc.getElementById('mapCount');
+          const render = (q='') => {
+            const qq = (q || '').trim().toLowerCase();
+            const filteredIndices = [];
+            const filtered = lines.filter((x, i) => {
+              const ok = !qq || x.toLowerCase().includes(qq);
+              if (ok) filteredIndices.push(i);
+              return ok;
+            });
+            list.innerHTML = '';
+            filtered.forEach((x, fi) => {
+              const row = doc.createElement('div');
+              row.className = 'line';
+              const txt = doc.createElement('div');
+              txt.className = 'line-text';
+              txt.textContent = x;
+              row.appendChild(txt);
+              if (IS_ADMIN) {
+                const idx = filteredIndices[fi];
+                const del = doc.createElement('button');
+                del.type = 'button';
+                del.className = 'line-del';
+                del.textContent = 'Löschen';
+                del.addEventListener('click', async () => {
+                  try {
+                    const body = new URLSearchParams({ code, line_idx: String(idx) });
+                    const r = await fetch('/admin-mappings-delete-line', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+                    const j = await r.json();
+                    if (!r.ok || !j.ok) throw new Error('delete_failed');
+                    lines.splice(idx, 1);
+                    render(search.value || '');
+                  } catch (_) {
+                    alert(getT('server.popupFailed'));
+                  }
+                });
+                row.appendChild(del);
+              }
+              list.appendChild(row);
+            });
+            count.textContent = `Treffer: ${filtered.length} / ${lines.length}`;
+          };
+          search.addEventListener('input', () => render(search.value));
+          render();
+        } catch(e) {
+          alert(getT('server.popupFailed'));
+        }
+      });
+    });
+  </script>
+</body>
+</html>
