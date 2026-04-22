@@ -5,7 +5,8 @@ import json
 import os
 import re
 import secrets
-import sqlite3
+import psycopg
+from psycopg.rows import dict_row
 import zipfile
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -51,7 +52,7 @@ MAPPING_STORE_DIR.mkdir(parents=True, exist_ok=True)
 MAPPING_LOCK_DIR = MAPPING_STORE_DIR / "_locks"
 MAPPING_LOCK_DIR.mkdir(parents=True, exist_ok=True)
 MAPPING_LOCK_TTL_SECONDS = 20 * 60
-MAPPING_DB_PATH = MAPPING_STORE_DIR / "mapping_store.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://rolemapper:rolemapper@db:5432/rolemapper")
 
 # Compatibility map old <-> new permission names.
 # Source of truth: Aufgabe/Persona-Permission-Mapping.xlsx, sheet "oldperm-newperm".
@@ -82,14 +83,12 @@ DEFAULT_PERSONAS = [
 
 app = Flask(__name__)
 app.secret_key = "rolemapper-local-dev"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.9"
 SUPPORTED_LANGS = ["de", "en", "it", "fr", "pt", "es"]
 
 
-def _db_connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(MAPPING_DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def _db_connect():
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row, autocommit=True)
 
 
 def _init_mapping_db() -> None:
@@ -118,7 +117,7 @@ def _init_mapping_db() -> None:
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS mapping_history (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              id BIGSERIAL PRIMARY KEY,
               code TEXT NOT NULL,
               event_type TEXT NOT NULL,
               changed_at TEXT NOT NULL,
@@ -131,6 +130,15 @@ def _init_mapping_db() -> None:
 
 
 def _history_actor() -> str:
+    # Prefer the resolved editor label (includes detected SSO/cookie/manual name + role).
+    try:
+        _eid, label = _editor_identity()
+        clean = sanitize_plain_text(label or "")
+        if clean:
+            return clean[:120]
+    except Exception:
+        pass
+
     if session.get("auth_admin"):
         return "admin"
     if session.get("auth_i18n_langs"):
@@ -139,7 +147,7 @@ def _history_actor() -> str:
 
 
 def _record_history(
-    conn: sqlite3.Connection,
+    conn,
     code: str,
     event_type: str,
     meta: Dict[str, str],
@@ -148,7 +156,7 @@ def _record_history(
     conn.execute(
         """
         INSERT INTO mapping_history (code, event_type, changed_at, actor, meta_json, mapping_lines_text)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """,
         (
             code,
@@ -168,7 +176,7 @@ def mapping_record_exists(code: str) -> bool:
     _init_mapping_db()
     with _db_connect() as conn:
         row = conn.execute(
-            "SELECT 1 FROM mapping_records WHERE code = ? AND deleted = 0 LIMIT 1",
+            "SELECT 1 FROM mapping_records WHERE code = %s AND deleted = 0 LIMIT 1",
             (safe_code,),
         ).fetchone()
     return bool(row)
@@ -1368,7 +1376,7 @@ def save_mapping_plus(
     existing: Dict[str, str] = {}
     with _db_connect() as conn:
         row = conn.execute(
-            "SELECT * FROM mapping_records WHERE code = ? AND deleted = 0",
+            "SELECT * FROM mapping_records WHERE code = %s AND deleted = 0",
             (safe_code,),
         ).fetchone()
         if row:
@@ -1408,7 +1416,7 @@ def save_mapping_plus(
               code, country, postal_code, city, customer_no, site, customer,
               created_at, created_at_client, updated_at, updated_at_client,
               line_count, source_roles_json, mapping_lines_text, deleted
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
             ON CONFLICT(code) DO UPDATE SET
               country=excluded.country,
               postal_code=excluded.postal_code,
@@ -1452,7 +1460,7 @@ def load_mapping_plus_bundle(code: str) -> Tuple[Dict[str, List[str]], Dict[str,
     meta: Dict[str, object] = {}
     with _db_connect() as conn:
         row = conn.execute(
-            "SELECT * FROM mapping_records WHERE code = ? AND deleted = 0",
+            "SELECT * FROM mapping_records WHERE code = %s AND deleted = 0",
             (safe_code,),
         ).fetchone()
     if not row:
@@ -1475,13 +1483,14 @@ def load_mapping_plus_bundle(code: str) -> Tuple[Dict[str, List[str]], Dict[str,
     except Exception:
         meta["source_roles"] = []
 
-    # Keep source roles even when there are no mapping lines yet.
-    if not mapping and isinstance(meta, dict):
+    # Keep source roles in memory even when they have no target mapping lines.
+    # This preserves external auth roles in DB/UI while still exporting only mapped lines.
+    if isinstance(meta, dict):
         raw_roles = meta.get("source_roles", [])
         if isinstance(raw_roles, list):
             clean_roles = [sanitize_plain_text(r) for r in raw_roles if sanitize_plain_text(r)]
-            if clean_roles:
-                mapping = {r: [] for r in clean_roles}
+            for role in clean_roles:
+                mapping.setdefault(role, [])
 
     return mapping, meta_out
 
@@ -1767,6 +1776,7 @@ def index():
     mapping_plus_code = ""
     mapping_loaded_from_server = False
     unmapped_warning_roles: List[str] = []
+    added_source_roles: List[str] = []
     unmapped_warning_header = ""
     unmapped_warning_filename = ""
     permission_mode = settings.get("permission_mode", "auto")
@@ -1785,7 +1795,6 @@ def index():
     login_scope = (session.get("login_scope", "") or "")
     login_lang = (session.get("login_lang", "") or "")
     editor_id, editor_label = _editor_identity()
-    is_admin = _is_admin_authenticated()
     active_edit_code = re.sub(r"[^A-Z0-9]", "", str(session.get("editing_mapping_code", "") or "").upper())[:20]
 
     load_code = sanitize_plain_text(request.args.get("api_code", "") or request.args.get("load_mapping_code", ""))
@@ -1820,6 +1829,69 @@ def index():
                 flash("Kein gespeichertes Mapping für diesen Code gefunden.")
 
     if request.method == "POST":
+        def _parse_assignment_payload(payload: str) -> Dict[str, Dict[str, List[str]]]:
+            result: Dict[str, Dict[str, List[str]]] = {}
+            if not str(payload or "").strip():
+                return result
+            try:
+                parsed = json.loads(payload)
+            except Exception:
+                return result
+            if not isinstance(parsed, dict):
+                return result
+            for raw_src, raw_values in parsed.items():
+                src = sanitize_plain_text(str(raw_src or ""))
+                if not src:
+                    continue
+                personas_vals: List[str] = []
+                roles_vals: List[str] = []
+                if isinstance(raw_values, dict):
+                    pvals = raw_values.get("personas", [])
+                    rvals = raw_values.get("roles", [])
+                    if isinstance(pvals, list):
+                        personas_vals = [sanitize_plain_text(str(v)) for v in pvals if sanitize_plain_text(str(v))]
+                    if isinstance(rvals, list):
+                        roles_vals = [sanitize_plain_text(str(v)) for v in rvals if sanitize_plain_text(str(v))]
+                elif isinstance(raw_values, list):
+                    personas_vals = [sanitize_plain_text(str(v)) for v in raw_values if sanitize_plain_text(str(v))]
+                result[src] = {
+                    "personas": list(dict.fromkeys(personas_vals)),
+                    "roles": list(dict.fromkeys(roles_vals)),
+                }
+            return result
+
+        def _merge_source_context(
+            existing_sources: List[str],
+            existing_assignments: Dict[str, Dict[str, List[str]]],
+            incoming_sources: List[str],
+            incoming_personas: Dict[str, List[str]],
+            incoming_roles: Dict[str, List[str]],
+        ) -> Tuple[List[str], Dict[str, List[str]], Dict[str, List[str]], List[str]]:
+            existing_clean = [sanitize_plain_text(x) for x in (existing_sources or []) if sanitize_plain_text(x)]
+            incoming_clean = [sanitize_plain_text(x) for x in (incoming_sources or []) if sanitize_plain_text(x)]
+            existing_set = set(existing_clean)
+            ordered_sources = list(dict.fromkeys(existing_clean + incoming_clean))
+            added = [src for src in incoming_clean if src not in existing_set]
+
+            merged_personas: Dict[str, List[str]] = {}
+            merged_roles: Dict[str, List[str]] = {}
+            for src in ordered_sources:
+                existing_for_src = existing_assignments.get(src, {}) if isinstance(existing_assignments, dict) else {}
+                p_existing = existing_for_src.get("personas", []) if isinstance(existing_for_src, dict) else []
+                r_existing = existing_for_src.get("roles", []) if isinstance(existing_for_src, dict) else []
+                p_existing_clean = [sanitize_plain_text(x) for x in (p_existing or []) if sanitize_plain_text(x)]
+                r_existing_clean = [sanitize_plain_text(x) for x in (r_existing or []) if sanitize_plain_text(x)]
+                if p_existing_clean or r_existing_clean:
+                    merged_personas[src] = list(dict.fromkeys(p_existing_clean))
+                    merged_roles[src] = list(dict.fromkeys(r_existing_clean))
+                    continue
+                p_in = [sanitize_plain_text(x) for x in (incoming_personas.get(src, []) if incoming_personas else []) if sanitize_plain_text(x)]
+                r_in = [sanitize_plain_text(x) for x in (incoming_roles.get(src, []) if incoming_roles else []) if sanitize_plain_text(x)]
+                merged_personas[src] = list(dict.fromkeys(p_in))
+                merged_roles[src] = list(dict.fromkeys(r_in))
+
+            return ordered_sources, merged_personas, merged_roles, added
+
         action = request.form.get("action", "csv_upload")
         ui_lang = (request.form.get("ui_lang", "") or "").strip().lower()
         if ui_lang not in SUPPORTED_LANGS:
@@ -1836,6 +1908,9 @@ def index():
         mapping_client_ts = sanitize_plain_text(request.form.get("mapping_client_ts", ""))
         mapping_loaded_from_server = (request.form.get("mapping_loaded_from_server", "0") == "1")
         active_server_code = re.sub(r"[^A-Z0-9]", "", (mapping_plus_code or "").upper())[:20]
+        existing_source_roles = [sanitize_plain_text(x) for x in request.form.getlist("existing_source_roles") if sanitize_plain_text(x)]
+        existing_assignments_json = request.form.get("existing_assignments_json", "")
+        existing_assignments = _parse_assignment_payload(existing_assignments_json)
 
         # Keep active API-loaded customer context even when entry forms do not post hidden fields.
         if not active_server_code and active_edit_code:
@@ -1851,16 +1926,7 @@ def index():
                 mapping_plus_side = fallback_meta.get("side", "") or mapping_plus_side
                 mapping_plus_customer = fallback_meta.get("customer", "") or mapping_plus_customer
 
-        # Customer metadata is editable by admins only.
-        if active_server_code and not is_admin:
-            _meta_mapping, fixed_meta = load_mapping_plus_bundle(active_server_code)
-            if _meta_mapping or mapping_record_exists(active_server_code):
-                mapping_plus_country = fixed_meta.get("country", "") or mapping_plus_country
-                mapping_plus_postal_code = fixed_meta.get("postal_code", "") or mapping_plus_postal_code
-                mapping_plus_city = fixed_meta.get("city", "") or mapping_plus_city
-                mapping_plus_customer_no = fixed_meta.get("customer_no", "") or mapping_plus_customer_no
-                mapping_plus_side = fixed_meta.get("side", "") or mapping_plus_side
-                mapping_plus_customer = fixed_meta.get("customer", "") or mapping_plus_customer
+        # Customer metadata can be edited by users on the main mapping page.
 
         if action == "mapping_plus_load":
             raw_text = request.form.get("mapping_raw_text", "")
@@ -1873,13 +1939,20 @@ def index():
                 if not seed_mapping:
                     flash("Keine verwertbaren Mapping-Zeilen im Text gefunden.")
                 else:
-                    source_roles = sorted(seed_mapping.keys())
-                    prefill_personas = build_prefill_personas(source_roles, personas, seed_mapping)
-                    prefill_roles = build_prefill_roles(source_roles, list(personas.keys()), seed_mapping)
+                    incoming_source_roles = sorted(seed_mapping.keys())
+                    incoming_prefill_personas = build_prefill_personas(incoming_source_roles, personas, seed_mapping)
+                    incoming_prefill_roles = build_prefill_roles(incoming_source_roles, list(personas.keys()), seed_mapping)
+                    source_roles, prefill_personas, prefill_roles, added_source_roles = _merge_source_context(
+                        existing_source_roles,
+                        existing_assignments,
+                        incoming_source_roles,
+                        incoming_prefill_personas,
+                        incoming_prefill_roles,
+                    )
                     show_role_pool = True
                     mapping_loaded_from_server = False
                     mapping_plus_code = ""
-                    flash(f"Text-Mapping geladen. {len(source_roles)} SOURCE-Rollen erkannt.")
+                    flash(f"Text-Mapping geladen. {len(incoming_source_roles)} SOURCE-Rollen erkannt.")
             else:
                 code_in = sanitize_plain_text(request.form.get("mapping_plus_code", ""))
                 safe_code = re.sub(r"[^A-Z0-9]", "", code_in.upper())[:20]
@@ -1901,9 +1974,16 @@ def index():
                     if not seed_mapping and not mapping_record_exists(safe_code):
                         flash("Kein gespeichertes Mapping für diesen Code gefunden.")
                     else:
-                        source_roles = sorted(seed_mapping.keys())
-                        prefill_personas = build_prefill_personas(source_roles, personas, seed_mapping)
-                        prefill_roles = build_prefill_roles(source_roles, list(personas.keys()), seed_mapping)
+                        incoming_source_roles = sorted(seed_mapping.keys())
+                        incoming_prefill_personas = build_prefill_personas(incoming_source_roles, personas, seed_mapping)
+                        incoming_prefill_roles = build_prefill_roles(incoming_source_roles, list(personas.keys()), seed_mapping)
+                        source_roles, prefill_personas, prefill_roles, added_source_roles = _merge_source_context(
+                            existing_source_roles,
+                            existing_assignments,
+                            incoming_source_roles,
+                            incoming_prefill_personas,
+                            incoming_prefill_roles,
+                        )
                         show_role_pool = True
                         mapping_loaded_from_server = True
                         mapping_plus_code = safe_code
@@ -1935,11 +2015,19 @@ def index():
                     flash(t(ui_lang, "mapping_no_sources"))
                 else:
                     uploaded_mapping = parse_mapping_dict_from_txt(content)
-                    prefill_personas = build_prefill_personas(source_roles, personas, uploaded_mapping)
-                    prefill_roles = build_prefill_roles(source_roles, list(personas.keys()), uploaded_mapping)
+                    incoming_source_roles = source_roles
+                    incoming_prefill_personas = build_prefill_personas(incoming_source_roles, personas, uploaded_mapping)
+                    incoming_prefill_roles = build_prefill_roles(incoming_source_roles, list(personas.keys()), uploaded_mapping)
+                    source_roles, prefill_personas, prefill_roles, added_source_roles = _merge_source_context(
+                        existing_source_roles,
+                        existing_assignments,
+                        incoming_source_roles,
+                        incoming_prefill_personas,
+                        incoming_prefill_roles,
+                    )
                     show_role_pool = True
                     mapping_loaded_from_server = bool(active_server_code)
-                    flash(t(ui_lang, "mapping_loaded", n=len(source_roles)))
+                    flash(t(ui_lang, "mapping_loaded", n=len(incoming_source_roles)))
             except Exception as exc:
                 flash(t(ui_lang, "processing_failed", err=exc))
 
@@ -2016,14 +2104,22 @@ def index():
 
                 source_roles = unique_source_roles(rows, role_column)
                 seed_mapping = load_seed_mapping_for_prefill(TASK_DIR)
-                prefill_personas = build_prefill_personas(source_roles, personas, seed_mapping)
-                prefill_roles = build_prefill_roles(source_roles, list(personas.keys()), seed_mapping)
+                incoming_source_roles = source_roles
+                incoming_prefill_personas = build_prefill_personas(incoming_source_roles, personas, seed_mapping)
+                incoming_prefill_roles = build_prefill_roles(incoming_source_roles, list(personas.keys()), seed_mapping)
+                source_roles, prefill_personas, prefill_roles, added_source_roles = _merge_source_context(
+                    existing_source_roles,
+                    existing_assignments,
+                    incoming_source_roles,
+                    incoming_prefill_personas,
+                    incoming_prefill_roles,
+                )
                 show_role_pool = True
                 mapping_loaded_from_server = bool(active_server_code)
-                if not source_roles:
+                if not incoming_source_roles:
                     flash(t(ui_lang, "no_source_roles"))
                 else:
-                    flash(t(ui_lang, "csv_loaded", n=len(source_roles)))
+                    flash(t(ui_lang, "csv_loaded", n=len(incoming_source_roles)))
 
                 headers = filtered_headers
 
@@ -2047,11 +2143,27 @@ def index():
                 flash(t(ui_lang, "test_no_roles"))
             else:
                 seed_mapping = load_seed_mapping_for_prefill(TASK_DIR)
-                prefill_personas = build_prefill_personas(source_roles, personas, seed_mapping)
-                prefill_roles = {}
+                incoming_source_roles = source_roles
+                incoming_prefill_personas = build_prefill_personas(incoming_source_roles, personas, seed_mapping)
+
+                auto_map_external_to_individual = (request.form.get("auto_map_external_to_individual", "") == "1")
+                if auto_map_external_to_individual:
+                    # Pre-fill each source role with itself as direct individual role mapping.
+                    incoming_prefill_roles = {src: [src] for src in incoming_source_roles}
+                else:
+                    incoming_prefill_roles = {}
+
+                source_roles, prefill_personas, prefill_roles, added_source_roles = _merge_source_context(
+                    existing_source_roles,
+                    existing_assignments,
+                    incoming_source_roles,
+                    incoming_prefill_personas,
+                    incoming_prefill_roles,
+                )
+
                 show_role_pool = True
                 mapping_loaded_from_server = bool(active_server_code)
-                flash(t(ui_lang, "test_ready", n=len(source_roles)))
+                flash(t(ui_lang, "test_ready", n=len(incoming_source_roles)))
 
         elif action == "dirty_keycloak_import":
             if active_edit_code:
@@ -2063,12 +2175,19 @@ def index():
             if not seed_mapping:
                 flash("Keine verwertbaren RoleMapper_-Zeilen gefunden.")
             else:
-                source_roles = sorted(seed_mapping.keys())
-                prefill_personas = build_prefill_personas(source_roles, personas, seed_mapping)
-                prefill_roles = build_prefill_roles(source_roles, list(personas.keys()), seed_mapping)
+                incoming_source_roles = sorted(seed_mapping.keys())
+                incoming_prefill_personas = build_prefill_personas(incoming_source_roles, personas, seed_mapping)
+                incoming_prefill_roles = build_prefill_roles(incoming_source_roles, list(personas.keys()), seed_mapping)
+                source_roles, prefill_personas, prefill_roles, added_source_roles = _merge_source_context(
+                    existing_source_roles,
+                    existing_assignments,
+                    incoming_source_roles,
+                    incoming_prefill_personas,
+                    incoming_prefill_roles,
+                )
                 show_role_pool = True
                 mapping_loaded_from_server = bool(active_server_code)
-                flash(f"Dirty-Keycloak-Import bereit. {len(source_roles)} SOURCE-Rollen erkannt.")
+                flash(f"Dirty-Keycloak-Import bereit. {len(incoming_source_roles)} SOURCE-Rollen erkannt.")
 
         elif action == "generate_assigned":
             source_roles = request.form.getlist("source_roles")
@@ -2197,6 +2316,7 @@ def index():
         personas=personas,
         prefill_personas=prefill_personas,
         prefill_roles=prefill_roles,
+        added_source_roles=added_source_roles,
         show_role_pool=show_role_pool,
         permission_mode=permission_mode,
         login_scope=session.get("login_scope", ""),
@@ -2583,8 +2703,8 @@ def download_deploy_bundle():
 
     # Fallback templates allow deploy-bundle generation even when external nodes
     # don't carry all source files next to the running app.
-    compose_fallback = """services:\n  rolemapper:\n    build:\n      context: .\n      dockerfile: Dockerfile\n    container_name: rolemapper\n    restart: unless-stopped\n    ports:\n      - \"5080:5080\"\n    environment:\n      - TZ=Europe/Berlin\n    volumes:\n      - ./config:/app/config\n      - ./output:/app/output\n      - ./Aufgabe:/app/Aufgabe\n      - ./mapping_store:/app/mapping_store\n"""
-    dockerfile_fallback = """FROM python:3.12-slim\n\nWORKDIR /app\n\nENV PYTHONDONTWRITEBYTECODE=1 \\\n+    PYTHONUNBUFFERED=1 \\\n+    TZ=Europe/Berlin\n\nCOPY requirements.txt ./\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY . .\n\nEXPOSE 5080\n\nCMD [\"python\", \"app/app.py\"]\n"""
+    compose_fallback = """services:\n  db:\n    image: postgres:16-alpine\n    container_name: rolemapper-db\n    restart: unless-stopped\n    environment:\n      POSTGRES_DB: rolemapper\n      POSTGRES_USER: rolemapper\n      POSTGRES_PASSWORD: rolemapper\n    volumes:\n      - rolemapper-db-data:/var/lib/postgresql/data\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U rolemapper -d rolemapper\"]\n      interval: 10s\n      timeout: 5s\n      retries: 10\n\n  rolemapper:\n    build:\n      context: .\n      dockerfile: Dockerfile\n    container_name: rolemapper\n    restart: unless-stopped\n    depends_on:\n      db:\n        condition: service_healthy\n    ports:\n      - \"5080:5080\"\n    environment:\n      - TZ=Europe/Berlin\n      - DATABASE_URL=postgresql://rolemapper:rolemapper@db:5432/rolemapper\n    volumes:\n      - ./config:/app/config\n      - ./output:/app/output\n      - ./Aufgabe:/app/Aufgabe\n      - ./mapping_store:/app/mapping_store\n\nvolumes:\n  rolemapper-db-data:\n"""
+    dockerfile_fallback = """FROM python:3.12-slim\n\nWORKDIR /app\n\nENV PYTHONDONTWRITEBYTECODE=1 \\\n    PYTHONUNBUFFERED=1 \\\n    TZ=Europe/Berlin\n\nCOPY requirements.txt ./\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY . .\n\nEXPOSE 5080\n\nCMD [\"python\", \"app/app.py\"]\n"""
 
     compose_content = compose_src.read_text(encoding="utf-8", errors="ignore") if compose_src else compose_fallback
     dockerfile_content = dockerfile_src.read_text(encoding="utf-8", errors="ignore") if dockerfile_src.exists() else dockerfile_fallback
@@ -2778,7 +2898,7 @@ def api_mapping_codes():
         if code:
             with _db_connect() as conn:
                 row = conn.execute(
-                    "SELECT mapping_lines_text FROM mapping_records WHERE code = ? AND deleted = 0",
+                    "SELECT mapping_lines_text FROM mapping_records WHERE code = %s AND deleted = 0",
                     (code,),
                 ).fetchone()
             if row:
@@ -3012,7 +3132,7 @@ def mapping_plus_content(code: str):
     _init_mapping_db()
     with _db_connect() as conn:
         row = conn.execute(
-            "SELECT mapping_lines_text FROM mapping_records WHERE code = ? AND deleted = 0",
+            "SELECT mapping_lines_text FROM mapping_records WHERE code = %s AND deleted = 0",
             (safe_code,),
         ).fetchone()
     if not row:
@@ -3020,6 +3140,152 @@ def mapping_plus_content(code: str):
 
     content = str(row["mapping_lines_text"] or "")
     return jsonify({"ok": True, "code": safe_code, "content": content})
+
+
+@app.route("/mapping-plus-history/<code>")
+def mapping_plus_history(code: str):
+    safe_code = re.sub(r"[^A-Z0-9]", "", (code or "").upper())[:20]
+    if not safe_code:
+        return jsonify({"ok": False, "error": "invalid_code"}), 400
+
+    _init_mapping_db()
+    with _db_connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, event_type, changed_at, actor, mapping_lines_text
+            FROM mapping_history
+            WHERE code = %s
+            ORDER BY id DESC
+            LIMIT 200
+            """,
+            (safe_code,),
+        ).fetchall()
+
+    entries = []
+    for r in rows:
+        lines = str(r["mapping_lines_text"] or "").splitlines()
+        entries.append(
+            {
+                "id": int(r["id"]),
+                "event_type": sanitize_plain_text(r["event_type"] or ""),
+                "changed_at": sanitize_plain_text(r["changed_at"] or ""),
+                "actor": sanitize_plain_text(r["actor"] or ""),
+                "line_count": len(lines),
+            }
+        )
+
+    return jsonify({"ok": True, "code": safe_code, "entries": entries})
+
+
+@app.route("/mapping-plus-restore", methods=["POST"])
+def mapping_plus_restore():
+    if not _is_admin_authenticated():
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+
+    code = sanitize_plain_text(request.form.get("code", ""))
+    history_id_raw = sanitize_plain_text(request.form.get("history_id", ""))
+    safe_code = re.sub(r"[^A-Z0-9]", "", (code or "").upper())[:20]
+    if not safe_code:
+        return jsonify({"ok": False, "error": "invalid_code"}), 400
+    try:
+        history_id = int(history_id_raw)
+    except Exception:
+        return jsonify({"ok": False, "error": "invalid_history_id"}), 400
+
+    _init_mapping_db()
+    with _db_connect() as conn:
+        hist = conn.execute(
+            "SELECT * FROM mapping_history WHERE id = %s AND code = %s LIMIT 1",
+            (history_id, safe_code),
+        ).fetchone()
+        if not hist:
+            return jsonify({"ok": False, "error": "history_not_found"}), 404
+
+        cur = conn.execute(
+            "SELECT * FROM mapping_records WHERE code = %s LIMIT 1",
+            (safe_code,),
+        ).fetchone()
+        if not cur:
+            return jsonify({"ok": False, "error": "record_not_found"}), 404
+
+        lines = str(hist["mapping_lines_text"] or "").splitlines()
+        meta = {}
+        try:
+            meta = json.loads(str(hist["meta_json"] or "{}"))
+        except Exception:
+            meta = {}
+
+        def _m(key: str) -> str:
+            return sanitize_plain_text(str(meta.get(key, "") or "")) if isinstance(meta, dict) else ""
+
+        source_roles = []
+        if isinstance(meta, dict) and isinstance(meta.get("source_roles"), list):
+            source_roles = [sanitize_plain_text(str(x)) for x in meta.get("source_roles", []) if sanitize_plain_text(str(x))]
+        if not source_roles:
+            try:
+                source_roles = [
+                    sanitize_plain_text(str(x))
+                    for x in json.loads(str(cur["source_roles_json"] or "[]"))
+                    if sanitize_plain_text(str(x))
+                ]
+            except Exception:
+                source_roles = []
+
+        now_server = datetime.now().isoformat()
+        country = _m("country") or sanitize_plain_text(cur["country"] or "")
+        postal_code = _m("postal_code") or sanitize_plain_text(cur["postal_code"] or "")
+        city = _m("city") or sanitize_plain_text(cur["city"] or "")
+        customer_no = _m("customer_no") or sanitize_plain_text(cur["customer_no"] or "")
+        site = _m("site") or sanitize_plain_text(cur["site"] or "")
+        customer = _m("customer") or sanitize_plain_text(cur["customer"] or "")
+
+        conn.execute(
+            """
+            UPDATE mapping_records
+            SET country = %s,
+                postal_code = %s,
+                city = %s,
+                customer_no = %s,
+                site = %s,
+                customer = %s,
+                updated_at = %s,
+                line_count = %s,
+                source_roles_json = %s,
+                mapping_lines_text = %s,
+                deleted = 0
+            WHERE code = %s
+            """,
+            (
+                country,
+                postal_code,
+                city,
+                customer_no,
+                site,
+                customer,
+                now_server,
+                len(lines),
+                json.dumps(source_roles, ensure_ascii=False),
+                "\n".join(lines),
+                safe_code,
+            ),
+        )
+
+        meta_obj = {
+            "code": safe_code,
+            "country": country,
+            "postal_code": postal_code,
+            "city": city,
+            "customer_no": customer_no,
+            "site": site,
+            "customer": customer,
+            "updated_at": now_server,
+            "line_count": len(lines),
+            "source_roles": source_roles,
+            "restored_from_history_id": history_id,
+        }
+        _record_history(conn, safe_code, "restore", meta_obj, lines)
+
+    return jsonify({"ok": True, "code": safe_code, "line_count": len(lines)})
 
 
 @app.route("/admin-mappings-delete-line", methods=["POST"])
@@ -3041,7 +3307,7 @@ def admin_mappings_delete_line():
     _init_mapping_db()
     with _db_connect() as conn:
         row = conn.execute(
-            "SELECT * FROM mapping_records WHERE code = ? AND deleted = 0",
+            "SELECT * FROM mapping_records WHERE code = %s AND deleted = 0",
             (safe_code,),
         ).fetchone()
         if not row:
@@ -3056,8 +3322,8 @@ def admin_mappings_delete_line():
         conn.execute(
             """
             UPDATE mapping_records
-            SET mapping_lines_text = ?, line_count = ?, updated_at = ?
-            WHERE code = ?
+            SET mapping_lines_text = %s, line_count = %s, updated_at = %s
+            WHERE code = %s
             """,
             ("\n".join(lines), len(lines), now_server, safe_code),
         )
@@ -3090,7 +3356,7 @@ def admin_mappings_delete_code():
     _init_mapping_db()
     with _db_connect() as conn:
         row = conn.execute(
-            "SELECT * FROM mapping_records WHERE code = ? AND deleted = 0",
+            "SELECT * FROM mapping_records WHERE code = %s AND deleted = 0",
             (safe_code,),
         ).fetchone()
         if not row:
@@ -3108,7 +3374,7 @@ def admin_mappings_delete_code():
             "line_count": int(row["line_count"] or 0),
         }
         conn.execute(
-            "UPDATE mapping_records SET deleted = 1, updated_at = ? WHERE code = ?",
+            "UPDATE mapping_records SET deleted = 1, updated_at = %s WHERE code = %s",
             (datetime.now().isoformat(), safe_code),
         )
         _record_history(conn, safe_code, "delete_code", meta_obj, lines)

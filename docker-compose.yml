@@ -1,16 +1,39 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: rolemapper-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rolemapper
+      POSTGRES_USER: rolemapper
+      POSTGRES_PASSWORD: rolemapper
+    volumes:
+      - rolemapper-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rolemapper -d rolemapper"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   rolemapper:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: rolemapper
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "5080:5080"
     environment:
       - TZ=Europe/Berlin
+      - DATABASE_URL=postgresql://rolemapper:rolemapper@db:5432/rolemapper
     volumes:
       - ./config:/app/config
       - ./output:/app/output
       - ./Aufgabe:/app/Aufgabe
       - ./mapping_store:/app/mapping_store
+
+volumes:
+  rolemapper-db-data:

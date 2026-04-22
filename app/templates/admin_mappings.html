@@ -76,6 +76,7 @@
               <th data-i18n="server.colSide">Standort</th>
               <th data-i18n="server.colCustomer">Kunde</th>
               <th data-i18n="server.colLines">Zeilen</th>
+              <th data-i18n="server.colHistory">History</th>
               {% if auth_admin %}<th data-i18n="server.colDelete">Löschen</th>{% endif %}
               <th data-i18n="server.colUpdated">Zuletzt geändert</th>
             </tr>
@@ -93,11 +94,12 @@
               <td>{{ e.side or '-' }}</td>
               <td>{{ e.customer or '-' }}</td>
               <td>{% if e.line_count and e.line_count != '-' %}<a href="#" class="btn lines-link" data-code="{{ e.code }}" data-country="{{ e.country or '-' }}" data-postal="{{ e.postal_code or '-' }}" data-city="{{ e.city or '-' }}" data-customer-no="{{ e.customer_no or '-' }}" data-side="{{ e.side or '-' }}" data-customer="{{ e.customer or '-' }}">{{ e.line_count }}</a>{% else %}-{% endif %}</td>
+              <td><button type="button" class="btn history-link" data-code="{{ e.code }}" data-i18n="server.btnHistory">History</button></td>
               {% if auth_admin %}<td><button type="button" class="btn-danger delete-row" data-code="{{ e.code }}" data-i18n="persona_names.delete">Löschen</button></td>{% endif %}
               <td><span class="ts" data-client="{{ e.client_ts or '' }}" data-server="{{ e.server_ts or '' }}">-</span></td>
             </tr>
             {% else %}
-            <tr><td colspan="{{ 12 if auth_admin else 11 }}" class="muted" data-i18n="server.empty">Keine gespeicherten Mappings gefunden.</td></tr>
+            <tr><td colspan="{{ 13 if auth_admin else 12 }}" class="muted" data-i18n="server.empty">Keine gespeicherten Mappings gefunden.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -107,12 +109,12 @@
 
   <script>
     const I18N = {
-      de:{menu:'Menü / Navigation','nav.main':'Hauptseite','nav.serverMappings':'Server-Mappings','nav.guide':'Anleitung / Guide','nav.personaConfig':'Persona-Konfiguration','nav.roles':'Rollenliste bearbeiten','nav.personaNames':'Persona-Liste bearbeiten','nav.i18n':'Lokalisierungstexte bearbeiten','nav.changelog':'Changelog','server.title':'Server-Mappings','server.hint':'Kein Mapping-Inhalt wird angezeigt. Datum/Uhrzeit nutzt primär Browserzeit (Fallback: Serverzeit).','server.searchCountry':'Suche Land (z.B. DE)','server.searchPostal':'Suche PLZ','server.searchCity':'Suche Stadt','server.searchCustomerNo':'Suche Kundennummer','server.searchCustomer':'Suche Kunde','server.colAction':'Aktion','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Land','server.colPostal':'PLZ','server.colCity':'Stadt','server.colCustomerNo':'Kundennummer','server.colSide':'Standort','server.colCustomer':'Kunde','server.colLines':'Zeilen','server.colDelete':'Löschen','server.btnDelete':'Zeile löschen','server.colUpdated':'Zuletzt geändert','server.btnLoad':'Laden','server.empty':'Keine gespeicherten Mappings gefunden.','server.linesOpen':'Öffnen','server.popupTitle':'Mapping-Inhalt','server.popupFailed':'Mapping-Inhalt konnte nicht geladen werden.','login':'Login','logout':'Logout','login.role':'Rolle'},
-      en:{menu:'Menu / Navigation','nav.main':'Main page','nav.serverMappings':'Server mappings','nav.guide':'Guide','nav.personaConfig':'Persona configuration','nav.roles':'Edit roles list','nav.personaNames':'Edit persona names','nav.i18n':'Edit localization texts','nav.changelog':'Changelog','server.title':'Server mappings','server.hint':'No mapping content is shown. Date/time primarily uses browser time (fallback: server time).','server.searchCountry':'Search country (e.g. DE)','server.searchPostal':'Search ZIP','server.searchCity':'Search city','server.searchCustomerNo':'Search customer no.','server.searchCustomer':'Search customer','server.colAction':'Action','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Country','server.colPostal':'ZIP','server.colCity':'City','server.colCustomerNo':'Customer no.','server.colSide':'Location','server.colCustomer':'Customer','server.colLines':'Lines','server.colDelete':'Delete','server.btnDelete':'Delete line','server.colUpdated':'Last updated','server.btnLoad':'Load','server.empty':'No saved mappings found.','server.linesOpen':'Open','server.popupTitle':'Mapping content','server.popupFailed':'Failed to load mapping content.','login':'Login','logout':'Logout','login.role':'Role'},
-      it:{menu:'Menu / Navigazione','nav.main':'Pagina principale','nav.serverMappings':'Mapping server','nav.guide':'Guida','nav.personaConfig':'Configurazione persona','nav.roles':'Modifica elenco ruoli','nav.personaNames':'Modifica elenco persona','nav.i18n':'Modifica testi localizzazione','nav.changelog':'Changelog','server.title':'Mapping server','server.hint':'Il contenuto del mapping non viene mostrato. Data/ora usa principalmente l\'ora del browser (fallback: ora server).','server.searchCountry':'Cerca paese (es. DE)','server.searchPostal':'Cerca CAP','server.searchCity':'Cerca città','server.searchCustomerNo':'Cerca numero cliente','server.searchCustomer':'Cerca cliente','server.colAction':'Azione','server.colTxt':'TXT','server.colCode':'Codice','server.colCountry':'Paese','server.colPostal':'CAP','server.colCity':'Città','server.colCustomerNo':'Numero cliente','server.colSide':'Sede','server.colCustomer':'Cliente','server.colLines':'Righe','server.colDelete':'Elimina','server.btnDelete':'Elimina riga','server.colUpdated':'Ultima modifica','server.btnLoad':'Carica','server.empty':'Nessun mapping salvato trovato.','server.linesOpen':'Apri','server.popupTitle':'Contenuto mapping','server.popupFailed':'Impossibile caricare il contenuto del mapping.','login':'Login','logout':'Logout','login.role':'Ruolo'},
-      fr:{menu:'Menu / Navigation','nav.main':'Page principale','nav.serverMappings':'Mappings serveur','nav.guide':'Guide','nav.personaConfig':'Configuration des personas','nav.roles':'Modifier la liste des rôles','nav.personaNames':'Modifier la liste des personas','nav.i18n':'Modifier les textes de localisation','nav.changelog':'Changelog','server.title':'Mappings serveur','server.hint':'Le contenu du mapping n\'est pas affiché. Date/heure utilise d\'abord l\'heure du navigateur (fallback : serveur).','server.searchCountry':'Rechercher pays (ex. DE)','server.searchPostal':'Rechercher CP','server.searchCity':'Rechercher ville','server.searchCustomerNo':'Rechercher n° client','server.searchCustomer':'Rechercher client','server.colAction':'Action','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Pays','server.colPostal':'CP','server.colCity':'Ville','server.colCustomerNo':'N° client','server.colSide':'Site','server.colCustomer':'Client','server.colLines':'Lignes','server.colDelete':'Supprimer','server.btnDelete':'Supprimer ligne','server.colUpdated':'Dernière modification','server.btnLoad':'Charger','server.empty':'Aucun mapping enregistré trouvé.','server.linesOpen':'Ouvrir','server.popupTitle':'Contenu du mapping','server.popupFailed':'Impossible de charger le contenu du mapping.','login':'Connexion','logout':'Déconnexion','login.role':'Rôle'},
-      pt:{menu:'Menu / Navegação','nav.main':'Página principal','nav.serverMappings':'Mapeamentos do servidor','nav.guide':'Guia','nav.personaConfig':'Configuração de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localização','nav.changelog':'Changelog','server.title':'Mapeamentos do servidor','server.hint':'O conteúdo do mapping não é exibido. Data/hora usa principalmente o horário do navegador (fallback: servidor).','server.searchCountry':'Buscar país (ex. DE)','server.searchPostal':'Buscar CEP','server.searchCity':'Buscar cidade','server.searchCustomerNo':'Buscar nº do cliente','server.searchCustomer':'Buscar cliente','server.colAction':'Ação','server.colTxt':'TXT','server.colCode':'Código','server.colCountry':'País','server.colPostal':'CEP','server.colCity':'Cidade','server.colCustomerNo':'Nº cliente','server.colSide':'Local','server.colCustomer':'Cliente','server.colLines':'Linhas','server.colDelete':'Excluir','server.btnDelete':'Excluir linha','server.colUpdated':'Última alteração','server.btnLoad':'Carregar','server.empty':'Nenhum mapping salvo encontrado.','server.linesOpen':'Abrir','server.popupTitle':'Conteúdo do mapping','server.popupFailed':'Falha ao carregar o conteúdo do mapping.','login':'Login','logout':'Logout','login.role':'Função'},
-      es:{menu:'Menú / Navegación','nav.main':'Página principal','nav.serverMappings':'Mapeos del servidor','nav.guide':'Guía','nav.personaConfig':'Configuración de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localización','nav.changelog':'Changelog','server.title':'Mapeos del servidor','server.hint':'No se muestra el contenido del mapping. Fecha/hora usa principalmente la hora del navegador (fallback: servidor).','server.searchCountry':'Buscar país (p.ej. DE)','server.searchPostal':'Buscar CP','server.searchCity':'Buscar ciudad','server.searchCustomerNo':'Buscar nº cliente','server.searchCustomer':'Buscar cliente','server.colAction':'Acción','server.colTxt':'TXT','server.colCode':'Código','server.colCountry':'País','server.colPostal':'CEP','server.colCity':'Cidade','server.colCustomerNo':'Nº cliente','server.colSide':'Ubicación','server.colCustomer':'Cliente','server.colLines':'Líneas','server.colDelete':'Eliminar','server.btnDelete':'Eliminar línea','server.colUpdated':'Última actualización','server.btnLoad':'Cargar','server.empty':'No se encontraron mapeos guardados.','server.linesOpen':'Abrir','server.popupTitle':'Contenido del mapping','server.popupFailed':'No se pudo cargar el contenido del mapping.','login':'Iniciar sesión','logout':'Cerrar sesión','login.role':'Rol'}
+      de:{menu:'Menü / Navigation','nav.main':'Hauptseite','nav.serverMappings':'Server-Mappings','nav.guide':'Anleitung / Guide','nav.personaConfig':'Persona-Konfiguration','nav.roles':'Rollenliste bearbeiten','nav.personaNames':'Persona-Liste bearbeiten','nav.i18n':'Lokalisierungstexte bearbeiten','nav.changelog':'Changelog','server.title':'Server-Mappings','server.hint':'Kein Mapping-Inhalt wird angezeigt. Datum/Uhrzeit nutzt primär Browserzeit (Fallback: Serverzeit).','server.searchCountry':'Suche Land (z.B. DE)','server.searchPostal':'Suche PLZ','server.searchCity':'Suche Stadt','server.searchCustomerNo':'Suche Kundennummer','server.searchCustomer':'Suche Kunde','server.colAction':'Aktion','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Land','server.colPostal':'PLZ','server.colCity':'Stadt','server.colCustomerNo':'Kundennummer','server.colSide':'Standort','server.colCustomer':'Kunde','server.colLines':'Zeilen','server.colHistory':'History','server.btnHistory':'History','server.colDelete':'Löschen','server.btnDelete':'Zeile löschen','server.colUpdated':'Zuletzt geändert','server.btnLoad':'Laden','server.empty':'Keine gespeicherten Mappings gefunden.','server.linesOpen':'Öffnen','server.popupTitle':'Mapping-Inhalt','server.popupFailed':'Mapping-Inhalt konnte nicht geladen werden.','login':'Login','logout':'Logout','login.role':'Rolle'},
+      en:{menu:'Menu / Navigation','nav.main':'Main page','nav.serverMappings':'Server mappings','nav.guide':'Guide','nav.personaConfig':'Persona configuration','nav.roles':'Edit roles list','nav.personaNames':'Edit persona names','nav.i18n':'Edit localization texts','nav.changelog':'Changelog','server.title':'Server mappings','server.hint':'No mapping content is shown. Date/time primarily uses browser time (fallback: server time).','server.searchCountry':'Search country (e.g. DE)','server.searchPostal':'Search ZIP','server.searchCity':'Search city','server.searchCustomerNo':'Search customer no.','server.searchCustomer':'Search customer','server.colAction':'Action','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Country','server.colPostal':'ZIP','server.colCity':'City','server.colCustomerNo':'Customer no.','server.colSide':'Location','server.colCustomer':'Customer','server.colLines':'Lines','server.colHistory':'History','server.btnHistory':'History','server.colDelete':'Delete','server.btnDelete':'Delete line','server.colUpdated':'Last updated','server.btnLoad':'Load','server.empty':'No saved mappings found.','server.linesOpen':'Open','server.popupTitle':'Mapping content','server.popupFailed':'Failed to load mapping content.','login':'Login','logout':'Logout','login.role':'Role'},
+      it:{menu:'Menu / Navigazione','nav.main':'Pagina principale','nav.serverMappings':'Mapping server','nav.guide':'Guida','nav.personaConfig':'Configurazione persona','nav.roles':'Modifica elenco ruoli','nav.personaNames':'Modifica elenco persona','nav.i18n':'Modifica testi localizzazione','nav.changelog':'Changelog','server.title':'Mapping server','server.hint':'Il contenuto del mapping non viene mostrato. Data/ora usa principalmente l\'ora del browser (fallback: ora server).','server.searchCountry':'Cerca paese (es. DE)','server.searchPostal':'Cerca CAP','server.searchCity':'Cerca città','server.searchCustomerNo':'Cerca numero cliente','server.searchCustomer':'Cerca cliente','server.colAction':'Azione','server.colTxt':'TXT','server.colCode':'Codice','server.colCountry':'Paese','server.colPostal':'CAP','server.colCity':'Città','server.colCustomerNo':'Numero cliente','server.colSide':'Sede','server.colCustomer':'Cliente','server.colLines':'Righe','server.colHistory':'Cronologia','server.btnHistory':'Cronologia','server.colDelete':'Elimina','server.btnDelete':'Elimina riga','server.colUpdated':'Ultima modifica','server.btnLoad':'Carica','server.empty':'Nessun mapping salvato trovato.','server.linesOpen':'Apri','server.popupTitle':'Contenuto mapping','server.popupFailed':'Impossibile caricare il contenuto del mapping.','login':'Login','logout':'Logout','login.role':'Ruolo'},
+      fr:{menu:'Menu / Navigation','nav.main':'Page principale','nav.serverMappings':'Mappings serveur','nav.guide':'Guide','nav.personaConfig':'Configuration des personas','nav.roles':'Modifier la liste des rôles','nav.personaNames':'Modifier la liste des personas','nav.i18n':'Modifier les textes de localisation','nav.changelog':'Changelog','server.title':'Mappings serveur','server.hint':'Le contenu du mapping n\'est pas affiché. Date/heure utilise d\'abord l\'heure du navigateur (fallback : serveur).','server.searchCountry':'Rechercher pays (ex. DE)','server.searchPostal':'Rechercher CP','server.searchCity':'Rechercher ville','server.searchCustomerNo':'Rechercher n° client','server.searchCustomer':'Rechercher client','server.colAction':'Action','server.colTxt':'TXT','server.colCode':'Code','server.colCountry':'Pays','server.colPostal':'CP','server.colCity':'Ville','server.colCustomerNo':'N° client','server.colSide':'Site','server.colCustomer':'Client','server.colLines':'Lignes','server.colHistory':'Historique','server.btnHistory':'Historique','server.colDelete':'Supprimer','server.btnDelete':'Supprimer ligne','server.colUpdated':'Dernière modification','server.btnLoad':'Charger','server.empty':'Aucun mapping enregistré trouvé.','server.linesOpen':'Ouvrir','server.popupTitle':'Contenu du mapping','server.popupFailed':'Impossible de charger le contenu du mapping.','login':'Connexion','logout':'Déconnexion','login.role':'Rôle'},
+      pt:{menu:'Menu / Navegação','nav.main':'Página principal','nav.serverMappings':'Mapeamentos do servidor','nav.guide':'Guia','nav.personaConfig':'Configuração de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localização','nav.changelog':'Changelog','server.title':'Mapeamentos do servidor','server.hint':'O conteúdo do mapping não é exibido. Data/hora usa principalmente o horário do navegador (fallback: servidor).','server.searchCountry':'Buscar país (ex. DE)','server.searchPostal':'Buscar CEP','server.searchCity':'Buscar cidade','server.searchCustomerNo':'Buscar nº do cliente','server.searchCustomer':'Buscar cliente','server.colAction':'Ação','server.colTxt':'TXT','server.colCode':'Código','server.colCountry':'País','server.colPostal':'CEP','server.colCity':'Cidade','server.colCustomerNo':'Nº cliente','server.colSide':'Local','server.colCustomer':'Cliente','server.colLines':'Linhas','server.colHistory':'Histórico','server.btnHistory':'Histórico','server.colDelete':'Excluir','server.btnDelete':'Excluir linha','server.colUpdated':'Última alteração','server.btnLoad':'Carregar','server.empty':'Nenhum mapping salvo encontrado.','server.linesOpen':'Abrir','server.popupTitle':'Conteúdo do mapping','server.popupFailed':'Falha ao carregar o conteúdo do mapping.','login':'Login','logout':'Logout','login.role':'Função'},
+      es:{menu:'Menú / Navegación','nav.main':'Página principal','nav.serverMappings':'Mapeos del servidor','nav.guide':'Guía','nav.personaConfig':'Configuración de personas','nav.roles':'Editar lista de roles','nav.personaNames':'Editar lista de personas','nav.i18n':'Editar textos de localización','nav.changelog':'Changelog','server.title':'Mapeos del servidor','server.hint':'No se muestra el contenido del mapping. Fecha/hora usa principalmente la hora del navegador (fallback: servidor).','server.searchCountry':'Buscar país (p.ej. DE)','server.searchPostal':'Buscar CP','server.searchCity':'Buscar ciudad','server.searchCustomerNo':'Buscar nº cliente','server.searchCustomer':'Buscar cliente','server.colAction':'Acción','server.colTxt':'TXT','server.colCode':'Código','server.colCountry':'País','server.colPostal':'CEP','server.colCity':'Cidade','server.colCustomerNo':'Nº cliente','server.colSide':'Ubicación','server.colCustomer':'Cliente','server.colLines':'Líneas','server.colHistory':'Historial','server.btnHistory':'Historial','server.colDelete':'Eliminar','server.btnDelete':'Eliminar línea','server.colUpdated':'Última actualización','server.btnLoad':'Cargar','server.empty':'No se encontraron mapeos guardados.','server.linesOpen':'Abrir','server.popupTitle':'Contenido del mapping','server.popupFailed':'No se pudo cargar el contenido del mapping.','login':'Iniciar sesión','logout':'Cerrar sesión','login.role':'Rol'}
     };
     const overrides = {{ i18n_overrides|tojson|safe }};
     const merged = (lang)=>Object.assign({}, I18N[lang]||I18N.en, (overrides && overrides[lang])||{});
@@ -262,6 +264,94 @@
           search.addEventListener('input', () => render(search.value));
           render();
         } catch(e) {
+          alert(getT('server.popupFailed'));
+        }
+      });
+    });
+
+    document.querySelectorAll('.history-link').forEach((btn)=>{
+      btn.addEventListener('click', async (ev)=>{
+        ev.preventDefault();
+        const code = (btn.dataset.code || '').trim();
+        if(!code) return;
+        try {
+          const res = await fetch(`/mapping-plus-history/${encodeURIComponent(code)}`);
+          const data = await res.json();
+          if(!res.ok || !data.ok) throw new Error('load_failed');
+
+          const entries = Array.isArray(data.entries) ? data.entries : [];
+          const w = window.open('', '_blank', 'width=920,height=700,resizable=yes,scrollbars=yes');
+          if(!w) return;
+
+          w.document.open();
+          w.document.write('<!doctype html><html><head><meta charset="utf-8"><title></title></head><body></body></html>');
+          w.document.close();
+          w.document.title = `${getT('server.colHistory')} ${code}`;
+
+          const doc = w.document;
+          const style = doc.createElement('style');
+          style.textContent = 'body{font-family:Calibri,Arial,sans-serif;padding:14px;margin:0;background:#fff;color:#1e2a39;}h3{margin:0 0 10px 0;}.list{border:1px solid #dfe7ef;border-radius:8px;overflow:auto;max-height:580px;}.row{display:grid;grid-template-columns:110px 150px 180px 90px 80px 1fr;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #eef2f7;font-size:13px;}.row.head{background:#f0f5fb;font-weight:700;position:sticky;top:0;}.row:last-child{border-bottom:none;}.muted{color:#5f7185;}.btn{padding:5px 8px;border:1px solid #d9e2ec;border-radius:8px;background:#fff;cursor:pointer;}.btn:hover{background:#eef4ff;}.btn-danger{padding:5px 8px;border:1px solid #f3c2c2;border-radius:8px;background:#fff5f5;color:#9b1c1c;cursor:pointer;}';
+          doc.head.appendChild(style);
+
+          const title = doc.createElement('h3');
+          title.textContent = `${getT('server.colHistory')} ${code}`;
+          doc.body.appendChild(title);
+
+          const hint = doc.createElement('div');
+          hint.className = 'muted';
+          hint.style.marginBottom = '10px';
+          hint.textContent = IS_ADMIN ? 'Restore möglich (Admin).' : 'Nur Lesemodus.';
+          doc.body.appendChild(hint);
+
+          const list = doc.createElement('div');
+          list.className = 'list';
+          list.innerHTML = '<div class="row head"><div>ID</div><div>Event</div><div>Zeit</div><div>Actor</div><div>Zeilen</div><div>Aktion</div></div>';
+
+          const fmtTs = (raw) => {
+            const d = new Date(String(raw || ''));
+            return isNaN(d.getTime()) ? String(raw || '-') : d.toLocaleString();
+          };
+
+          entries.forEach((e) => {
+            const row = doc.createElement('div');
+            row.className = 'row';
+            row.innerHTML = `<div>${e.id}</div><div>${e.event_type || '-'}</div><div>${fmtTs(e.changed_at)}</div><div>${e.actor || '-'}</div><div>${e.line_count || 0}</div><div></div>`;
+            const actionCell = row.lastElementChild;
+            const previewBtn = doc.createElement('button');
+            previewBtn.type = 'button';
+            previewBtn.className = 'btn';
+            previewBtn.textContent = 'Laden';
+            previewBtn.addEventListener('click', () => {
+              window.location.href = `/?load_mapping_code=${encodeURIComponent(code)}`;
+            });
+            actionCell.appendChild(previewBtn);
+
+            if (IS_ADMIN) {
+              const restoreBtn = doc.createElement('button');
+              restoreBtn.type = 'button';
+              restoreBtn.className = 'btn-danger';
+              restoreBtn.style.marginLeft = '6px';
+              restoreBtn.textContent = 'Restore';
+              restoreBtn.addEventListener('click', async () => {
+                if (!confirm(`History #${e.id} für ${code} wiederherstellen?`)) return;
+                try {
+                  const body = new URLSearchParams({ code, history_id: String(e.id) });
+                  const r = await fetch('/mapping-plus-restore', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+                  const j = await r.json();
+                  if(!r.ok || !j.ok) throw new Error('restore_failed');
+                  alert('Restore erfolgreich.');
+                } catch(_) {
+                  alert(getT('server.popupFailed'));
+                }
+              });
+              actionCell.appendChild(restoreBtn);
+            }
+
+            list.appendChild(row);
+          });
+
+          doc.body.appendChild(list);
+        } catch (e) {
           alert(getT('server.popupFailed'));
         }
       });

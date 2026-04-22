@@ -15,12 +15,16 @@ docker compose down
 ```
 
 ### Notes
+- Compose starts two containers:
+  - `rolemapper` (app)
+  - `rolemapper-db` (PostgreSQL)
 - Runtime data persists in project folders via compose mounts:
   - `./config`
   - `./output`
   - `./Aufgabe`
-  - `./mapping_store` (includes `mapping_store.db`)
-- Server mappings use DB-only storage (`mapping_store/mapping_store.db`).
+  - `./mapping_store` (locks/auxiliary files)
+- Database data persists in Docker volume `rolemapper-db-data`.
+- Server mappings use the PostgreSQL container as single source of truth.
 
 ## Run locally without Docker
 

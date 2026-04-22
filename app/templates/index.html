@@ -43,6 +43,9 @@
     .pool-actions{display:inline-flex;gap:4px;}
     .role-action-btn{padding:2px 6px;font-size:11px;border-radius:6px;}
     .source-action-btn{padding:2px 8px;font-size:11px;border-radius:6px;}
+    .newly-added-source{position:relative;background:linear-gradient(90deg, rgba(13,59,102,.18), rgba(13,59,102,.07) 36%, rgba(13,59,102,0) 62%);}
+    .newly-added-source::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:#0d3b66;border-radius:10px 0 0 10px;}
+    .source-new-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:#d7e7fb;color:#0d3b66;font-size:11px;font-weight:700;letter-spacing:.2px;border:1px solid #b8d2f6;}
     .source-action-spacer{flex:1 1 auto;min-width:12px;}
     .source-del-btn{margin-left:auto;background:#fff5f5;color:#9b1c1c;border:1px solid #f3c2c2;}
     .source-del-btn:hover{background:#ffe3e3;color:#7f1d1d;}
@@ -115,7 +118,7 @@
       </div>
       {% endif %}
 
-      {% set entry_locked = source_roles and (source_roles|length > 0) %}
+      {% set entry_locked = false %}
       <div class="grid">
         <div class="card">
           <h3 data-i18n="sec.uploadTitle">mapping.txt importieren</h3>
@@ -123,6 +126,8 @@
           <form method="post" enctype="multipart/form-data">
             <input type="hidden" name="action" value="mapping_upload">
             <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+            <input type="hidden" name="existing_assignments_json" class="existing-assignments-field" value="">
+            <div class="existing-sources-holder" style="display:none;"></div>
             <input type="file" id="mapping_file" name="mapping_file" accept=".txt,text/plain" required style="display:none;" {% if entry_locked %}disabled{% endif %}>
             <button type="button" id="filePickBtn" data-i18n="chooseFile" {% if entry_locked %}disabled{% endif %}>Datei auswählen</button>
             <span id="fileNameLabel" data-i18n="noFile" style="margin-left:8px;">Keine Datei ausgewählt</span><br><br>
@@ -136,7 +141,13 @@
           <form method="post">
             <input type="hidden" name="action" value="manual_test">
             <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
-            <textarea id="manual_roles" name="manual_roles" {% if entry_locked %}disabled{% endif %}></textarea><br><br>
+            <input type="hidden" name="existing_assignments_json" class="existing-assignments-field" value="">
+            <div class="existing-sources-holder" style="display:none;"></div>
+            <textarea id="manual_roles" name="manual_roles" {% if entry_locked %}disabled{% endif %}></textarea><br>
+            <label style="display:flex;align-items:center;gap:8px;margin:8px 0 12px 0;font-size:13px;color:#334155;">
+              <input type="checkbox" name="auto_map_external_to_individual" value="1" {% if entry_locked %}disabled{% endif %}>
+              Externe Rollen automatisch als individuelle Rollen pro AD/ORBIS-Rolle vorbefüllen
+            </label>
             <button type="button" id="fillSampleBtn" data-i18n="btn.fillSample" {% if entry_locked %}disabled{% endif %}>Beispielrollen einfügen</button>
             <button type="submit" data-i18n="btn.createTest" {% if entry_locked %}disabled{% endif %}>Mapping beginnen</button>
           </form>
@@ -148,6 +159,8 @@
           <form method="post">
             <input type="hidden" name="action" value="dirty_keycloak_import">
             <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+            <input type="hidden" name="existing_assignments_json" class="existing-assignments-field" value="">
+            <div class="existing-sources-holder" style="display:none;"></div>
             <textarea name="dirty_keycloak_text" placeholder="RoleMapper_<SOURCE>_to_<TARGET> ..." data-i18n-placeholder="dirtyPh" {% if entry_locked %}disabled{% endif %}></textarea><br><br>
             <button type="submit" data-i18n="btn.dirtyImport" {% if entry_locked %}disabled{% endif %}>Dirty Keycloak importieren</button>
           </form>
@@ -159,6 +172,8 @@
           <form method="post">
             <input type="hidden" name="action" value="mapping_plus_load">
             <input type="hidden" name="ui_lang" class="ui-lang-field" value="en">
+            <input type="hidden" name="existing_assignments_json" class="existing-assignments-field" value="">
+            <div class="existing-sources-holder" style="display:none;"></div>
             <textarea name="mapping_raw_text" placeholder="Inhalt der orbis-ds.xml oder ad-ds.xml einfügen" data-i18n-placeholder="mappingRawPh" style="width:100%;min-height:120px;margin-bottom:8px;padding:8px;border:1px solid #cbd5e1;border-radius:8px;" {% if entry_locked %}disabled{% endif %}></textarea>
             <button type="submit" data-i18n="btn.parseMappingText" {% if entry_locked %}disabled{% endif %}>Text parsen & laden</button>
           </form>
@@ -243,7 +258,7 @@
                 <span><span data-i18n="customerNoLabel">Kundennummer:</span> <strong id="customerNoPreview" class="meta-inline-view">{{ mapping_plus_customer_no or '-' }}</strong><input id="metaEditCustomerNo" class="meta-inline-edit" type="text" placeholder="Kundennummer" data-i18n-placeholder="customerNoPh" style="display:none;min-width:72px;width:72px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
                 <span><span data-i18n="sideLabel">Standort:</span> <strong id="sidePreview" class="meta-inline-view">{{ mapping_plus_side or '-' }}</strong><input id="metaEditSide" class="meta-inline-edit" type="text" placeholder="Standort" data-i18n-placeholder="sidePh" style="display:none;min-width:72px;width:72px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
                 <span><span data-i18n="customerLabel">Kunde:</span> <strong id="customerPreview" class="meta-inline-view">{{ mapping_plus_customer or '-' }}</strong><input id="metaEditCustomer" class="meta-inline-edit" type="text" placeholder="Kunde (intern, nicht im Download)" data-i18n-placeholder="customerPh" style="display:none;min-width:220px;padding:6px;border:1px solid #cbd5e1;border-radius:8px;"></span>
-                {% if auth_admin %}<button type="button" id="metaEditBtn" class="source-action-btn source-edit-btn">Ändern</button>{% endif %}
+                <button type="button" id="metaEditBtn" class="source-action-btn source-edit-btn" data-i18n="metaEdit">Ändern</button>
               </div>
               <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
                 <input id="newSourceRoleInput" type="text" placeholder="Neue LDAP/ORBIS-Rolle hinzufügen" data-i18n-placeholder="newSourceRolePh" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;min-width:280px;">
@@ -259,9 +274,12 @@
 
               <div id="sourceRolesModal" class="roles-modal" aria-hidden="true">
                 <div class="roles-modal-box">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
                     <strong data-i18n="sourceRolesListTitle">AD/ORBIS-Rollenliste</strong>
-                    <button type="button" id="closeSourceRolesModalBtn" data-i18n="insiderClose">Schließen</button>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                      <button type="button" id="exportSourceRolesBtn" data-i18n="sourceRolesExport">Export TXT</button>
+                      <button type="button" id="closeSourceRolesModalBtn" data-i18n="insiderClose">Schließen</button>
+                    </div>
                   </div>
                   <div class="muted" style="margin:6px 0 10px 0;"><span data-i18n="sourceRolesListHint">Alle aktuell geladenen AD/ORBIS-Rollen:</span> <strong id="sourceRolesListCount">0</strong></div>
                   <ul id="sourceRolesListUl" style="margin:0;padding-left:18px;"></ul>
@@ -271,8 +289,8 @@
               <div id="sourceBucketsWrap">
               {% for src in source_roles %}
               <input type="hidden" name="source_roles" value="{{ src }}">
-              <div class="source-bucket-row" style="margin:10px 0; padding:10px; border:1px solid #dfe7ef; border-radius:10px;" data-source-row="{{ src }}">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><strong class="source-role-name">{{ src }}</strong><button type="button" class="source-action-btn source-edit-btn">Ändern</button><span class="source-action-spacer"></span><button type="button" class="source-action-btn source-del-btn">Löschen</button></div>
+              <div class="source-bucket-row{% if src in (added_source_roles|default([])) %} newly-added-source{% endif %}" style="margin:10px 0; padding:10px; border:1px solid #dfe7ef; border-radius:10px;" data-source-row="{{ src }}">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><strong class="source-role-name">{{ src }}</strong>{% if src in (added_source_roles|default([])) %}<span class="source-new-badge" data-i18n="newRoleBadge">✨ Neu</span>{% endif %}<button type="button" class="source-action-btn source-edit-btn" data-i18n="sourceEdit">Ändern</button><span class="source-action-spacer"></span><button type="button" class="source-action-btn source-del-btn" data-i18n="sourceDelete">Löschen</button></div>
                 <div style="display:flex; gap:8px; margin:6px 0; flex-wrap:wrap;">
                   <label style="font-size:12px; color:#5f7185;" data-i18n="copyFrom">Copy to this role from:</label>
                   <select class="copy-from" data-target="{{ src }}"><option value="" data-i18n="selectRole">-- select role --</option>{% for src2 in source_roles %}{% if src2 != src %}<option value="{{ src2 }}">{{ src2 }}</option>{% endif %}{% endfor %}</select>
@@ -375,12 +393,12 @@
           'copyFrom':'In diese Rolle kopieren von:',
           'selectRole':'-- Rolle wählen --',
           'copyBtn':'Kopieren',
-          'generateTxt':'TXT erzeugen','saveMapping':'Mapping speichern','updateMapping':'Mapping am Server aktualisieren','updateHint':'Hinweis: Bei "Mapping am Server aktualisieren" wird die bestehende Version ohne Änderungshistorie überschrieben.','btn.loadMapping':'Mapping laden','btn.parseMappingText':'Text parsen & laden','btn.addSourceRole':'+ Rolle hinzufügen','btn.freshStart':'Neu beginnen','mappingCodePh':'Mapping Code eingeben','mappingRawPh':'Inhalt der orbis-ds.xml oder ad-ds.xml einfügen','customerPh':'Kunde (intern, nicht im Download)','countryLabel':'Land:','postalLabel':'PLZ:','cityLabel':'Stadt:','customerNoLabel':'Kundennummer:','sideLabel':'Standort:','customerLabel':'Kunde:','countryPh':'Land','postalPh':'PLZ','cityPh':'Stadt','customerNoPh':'Kundennummer','sidePh':'Standort','personaFilterPh':'Personas filtern...','rolesFilterPh':'Rollen filtern...','rolesColA':'DU Berechtigungsrollen','customRoles':'Individuelle Rollen','customRolesPh':'Rollen per Zeile, Komma oder Semikolon einfügen','addCustomRoles':'Rollen hinzufügen','newSourceRolePh':'Neue LDAP/ORBIS-Rolle hinzufügen','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'AD/ORBIS-Rollen filtern:','sourceRolesFilterPh':'AD/ORBIS-Rollen filtern...','btn.showSourceRolesList':'Rollenliste anzeigen','sourceRolesListTitle':'AD/ORBIS-Rollenliste','sourceRolesListHint':'Alle aktuell geladenen AD/ORBIS-Rollen:','bulkAssignHint':'Hier Persona/DU-Rolle/individuelle Rolle ablegen → allen aktuell sichtbaren AD/ORBIS-Rollen zuweisen',
+          'generateTxt':'TXT erzeugen','saveMapping':'Mapping speichern','updateMapping':'Mapping am Server aktualisieren','updateHint':'Hinweis: Bei "Mapping am Server aktualisieren" wird die bestehende Version ohne Änderungshistorie überschrieben.','btn.loadMapping':'Mapping laden','btn.parseMappingText':'Text parsen & laden','btn.addSourceRole':'+ Rolle hinzufügen','btn.freshStart':'Neu beginnen','mappingCodePh':'Mapping Code eingeben','mappingRawPh':'Inhalt der orbis-ds.xml oder ad-ds.xml einfügen','customerPh':'Kunde (intern, nicht im Download)','countryLabel':'Land:','postalLabel':'PLZ:','cityLabel':'Stadt:','customerNoLabel':'Kundennummer:','sideLabel':'Standort:','customerLabel':'Kunde:','countryPh':'Land','postalPh':'PLZ','cityPh':'Stadt','customerNoPh':'Kundennummer','sidePh':'Standort','personaFilterPh':'Personas filtern...','rolesFilterPh':'Rollen filtern...','rolesColA':'DU Berechtigungsrollen','customRoles':'Individuelle Rollen','customRolesPh':'Rollen per Zeile, Komma oder Semikolon einfügen','addCustomRoles':'Rollen hinzufügen','newSourceRolePh':'Neue LDAP/ORBIS-Rolle hinzufügen','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'AD/ORBIS-Rollen filtern:','sourceRolesFilterPh':'AD/ORBIS-Rollen filtern...','btn.showSourceRolesList':'Rollenliste anzeigen','sourceRolesListTitle':'AD/ORBIS-Rollenliste','sourceRolesListHint':'Alle aktuell geladenen AD/ORBIS-Rollen:','sourceRolesNew':'Neu hinzugefügt','sourceRolesExisting':'Bestehend','sourceRolesExport':'Export TXT','bulkAssignHint':'Hier Persona/DU-Rolle/individuelle Rolle ablegen → allen aktuell sichtbaren AD/ORBIS-Rollen zuweisen',
           'chooseFile':'Datei auswählen',
           'noFile':'Keine Datei ausgewählt',
           'insiderTitle':'👻 Insider-Ecke',
           'insiderText':'👻 Hallo User ich freue mich über Dich! Ich tue so, als wäre ich ruhig… und schiebe nebenbei Versionen hoch. Dieses Projekt macht mir so viel Spaß, dass sogar meine Bugs pünktlich sind. Spaßfaktor am Projekt: 9/10 Geisterketten.',
-          'insiderClose':'Schließen','entryLocked':'Einstieg gesperrt: Mapping ist bereits geladen. Bitte zuerst aktuellen Vorgang abschließen.','warn.unmappedHeader':'Hinweis: Folgende AD/ORBIS-Rollen haben kein Mapping und erscheinen daher nicht in der TXT:','warn.generatedFile':'Erzeugte Datei:'
+          'insiderClose':'Schließen','entryLocked':'Einstieg gesperrt: Mapping ist bereits geladen. Bitte zuerst aktuellen Vorgang abschließen.','warn.unmappedHeader':'Hinweis: Folgende AD/ORBIS-Rollen haben kein Mapping und erscheinen daher nicht in der TXT:','warn.generatedFile':'Erzeugte Datei:','newRoleBadge':'✨ Neu','metaEdit':'Ändern','metaOk':'OK','sourceEdit':'Ändern','sourceOk':'OK','sourceDelete':'Löschen'
         },
         en: {
           title: 'LDAP/ORBIS → Keycloak Rolemappe',
@@ -403,12 +421,12 @@
           'copyFrom':'Copy to this role from:',
           'selectRole':'-- select role --',
           'copyBtn':'Copy',
-          'generateTxt':'Generate TXT','saveMapping':'Save mapping','updateMapping':'Update mapping on server','updateHint':'Note: "Update mapping on server" overwrites the existing version without change history.','btn.loadMapping':'Load mapping','btn.parseMappingText':'Parse text & load','btn.addSourceRole':'+ Add role','btn.freshStart':'Start fresh','mappingCodePh':'Enter mapping code','mappingRawPh':'Paste content of orbis-ds.xml or ad-ds.xml','customerPh':'Customer (internal, not in download)','countryLabel':'Country:','postalLabel':'ZIP:','cityLabel':'City:','customerNoLabel':'Customer no.:','sideLabel':'Location:','customerLabel':'Customer:','countryPh':'Country','postalPh':'ZIP','cityPh':'City','customerNoPh':'Customer no.','sidePh':'Location','personaFilterPh':'Filter personas...','rolesFilterPh':'Filter roles...','rolesColA':'DU permission roles','customRoles':'Custom roles','customRolesPh':'Insert roles per line, comma or semicolon','addCustomRoles':'Add roles','newSourceRolePh':'Add new LDAP/ORBIS role','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filter AD/ORBIS roles:','sourceRolesFilterPh':'Filter AD/ORBIS roles...','btn.showSourceRolesList':'Show roles list','sourceRolesListTitle':'AD/ORBIS roles list','sourceRolesListHint':'All currently loaded AD/ORBIS roles:','bulkAssignHint':'Drop persona/DU role/custom role here → assign to all currently visible AD/ORBIS roles',
+          'generateTxt':'Generate TXT','saveMapping':'Save mapping','updateMapping':'Update mapping on server','updateHint':'Note: "Update mapping on server" overwrites the existing version without change history.','btn.loadMapping':'Load mapping','btn.parseMappingText':'Parse text & load','btn.addSourceRole':'+ Add role','btn.freshStart':'Start fresh','mappingCodePh':'Enter mapping code','mappingRawPh':'Paste content of orbis-ds.xml or ad-ds.xml','customerPh':'Customer (internal, not in download)','countryLabel':'Country:','postalLabel':'ZIP:','cityLabel':'City:','customerNoLabel':'Customer no.:','sideLabel':'Location:','customerLabel':'Customer:','countryPh':'Country','postalPh':'ZIP','cityPh':'City','customerNoPh':'Customer no.','sidePh':'Location','personaFilterPh':'Filter personas...','rolesFilterPh':'Filter roles...','rolesColA':'DU permission roles','customRoles':'Custom roles','customRolesPh':'Insert roles per line, comma or semicolon','addCustomRoles':'Add roles','newSourceRolePh':'Add new LDAP/ORBIS role','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filter AD/ORBIS roles:','sourceRolesFilterPh':'Filter AD/ORBIS roles...','btn.showSourceRolesList':'Show roles list','sourceRolesListTitle':'AD/ORBIS roles list','sourceRolesListHint':'All currently loaded AD/ORBIS roles:','sourceRolesNew':'Newly added','sourceRolesExisting':'Existing','sourceRolesExport':'Export TXT','bulkAssignHint':'Drop persona/DU role/custom role here → assign to all currently visible AD/ORBIS roles',
           'chooseFile':'Choose file',
           'noFile':'No file selected',
           'insiderTitle':'👻 Insider corner',
           'insiderText':'👻 Hello user, I\'m happy you\'re here! I pretend to be calm… and quietly ship versions on the side. This project is so much fun that even my bugs are on time. Fun factor in this project: 9/10 ghost chains.',
-          'insiderClose':'Close','entryLocked':'Entry locked: A mapping is already loaded. Please finish the current process first.','warn.unmappedHeader':'Note: The following AD/ORBIS roles have no mapping and therefore do not appear in the TXT:','warn.generatedFile':'Generated file:'
+          'insiderClose':'Close','entryLocked':'Entry locked: A mapping is already loaded. Please finish the current process first.','warn.unmappedHeader':'Note: The following AD/ORBIS roles have no mapping and therefore do not appear in the TXT:','warn.generatedFile':'Generated file:','newRoleBadge':'✨ New','metaEdit':'Edit','metaOk':'OK','sourceEdit':'Edit','sourceOk':'OK','sourceDelete':'Delete'
         },
         it: {
           title: 'LDAP/ORBIS → Keycloak Rolemappe',
@@ -431,12 +449,12 @@
           'copyFrom':'Copia in questo ruolo da:',
           'selectRole':'-- seleziona ruolo --',
           'copyBtn':'Copia',
-          'generateTxt':'Genera TXT','saveMapping':'Salva mapping','updateMapping':'Aggiorna mapping sul server','updateHint':'Nota: "Aggiorna mapping sul server" sovrascrive la versione esistente senza cronologia modifiche.','btn.loadMapping':'Carica mapping','btn.parseMappingText':'Analizza testo e carica','btn.addSourceRole':'+ Aggiungi ruolo','btn.freshStart':'Nuovo inizio','mappingCodePh':'Inserisci codice mapping','mappingRawPh':'Incolla il contenuto di orbis-ds.xml o ad-ds.xml','customerPh':'Cliente (interno, non nel download)','countryLabel':'Paese:','postalLabel':'CAP:','cityLabel':'Città:','customerNoLabel':'Numero cliente:','sideLabel':'Sede:','customerLabel':'Cliente:','countryPh':'Paese','postalPh':'CAP','cityPh':'Città','customerNoPh':'Numero cliente','sidePh':'Sede','personaFilterPh':'Filtra personas...','rolesFilterPh':'Filtra ruoli...','rolesColA':'Ruoli di autorizzazione DU','customRoles':'Ruoli personalizzati','customRolesPh':'Inserisci ruoli per riga, virgola o punto e virgola','addCustomRoles':'Aggiungi ruoli','newSourceRolePh':'Aggiungi nuovo ruolo LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtra ruoli AD/ORBIS:','sourceRolesFilterPh':'Filtra ruoli AD/ORBIS...','btn.showSourceRolesList':'Mostra elenco ruoli','sourceRolesListTitle':'Elenco ruoli AD/ORBIS','sourceRolesListHint':'Tutti i ruoli AD/ORBIS attualmente caricati:','bulkAssignHint':'Trascina qui persona/ruolo DU/ruolo personalizzato → assegna a tutti i ruoli AD/ORBIS attualmente visibili',
+          'generateTxt':'Genera TXT','saveMapping':'Salva mapping','updateMapping':'Aggiorna mapping sul server','updateHint':'Nota: "Aggiorna mapping sul server" sovrascrive la versione esistente senza cronologia modifiche.','btn.loadMapping':'Carica mapping','btn.parseMappingText':'Analizza testo e carica','btn.addSourceRole':'+ Aggiungi ruolo','btn.freshStart':'Nuovo inizio','mappingCodePh':'Inserisci codice mapping','mappingRawPh':'Incolla il contenuto di orbis-ds.xml o ad-ds.xml','customerPh':'Cliente (interno, non nel download)','countryLabel':'Paese:','postalLabel':'CAP:','cityLabel':'Città:','customerNoLabel':'Numero cliente:','sideLabel':'Sede:','customerLabel':'Cliente:','countryPh':'Paese','postalPh':'CAP','cityPh':'Città','customerNoPh':'Numero cliente','sidePh':'Sede','personaFilterPh':'Filtra personas...','rolesFilterPh':'Filtra ruoli...','rolesColA':'Ruoli di autorizzazione DU','customRoles':'Ruoli personalizzati','customRolesPh':'Inserisci ruoli per riga, virgola o punto e virgola','addCustomRoles':'Aggiungi ruoli','newSourceRolePh':'Aggiungi nuovo ruolo LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtra ruoli AD/ORBIS:','sourceRolesFilterPh':'Filtra ruoli AD/ORBIS...','btn.showSourceRolesList':'Mostra elenco ruoli','sourceRolesListTitle':'Elenco ruoli AD/ORBIS','sourceRolesListHint':'Tutti i ruoli AD/ORBIS attualmente caricati:','sourceRolesNew':'Aggiunti di recente','sourceRolesExisting':'Esistenti','sourceRolesExport':'Esporta TXT','bulkAssignHint':'Trascina qui persona/ruolo DU/ruolo personalizzato → assegna a tutti i ruoli AD/ORBIS attualmente visibili',
           'chooseFile':'Scegli file',
           'noFile':'Nessun file selezionato',
           'insiderTitle':'👻 Angolo insider',
           'insiderText':'👻 Ciao utente, sono felice che tu sia qui! Faccio finta di essere tranquillo… e intanto pubblico versioni in silenzio. Questo progetto mi diverte così tanto che perfino i miei bug sono puntuali. Fattore divertimento del progetto: 9/10 catene fantasma.',
-          'insiderClose':'Chiudi','entryLocked':'Ingresso bloccato: un mapping è già caricato. Completa prima il processo corrente.','warn.unmappedHeader':'Nota: I seguenti ruoli AD/ORBIS non hanno mapping e quindi non compaiono nel TXT:','warn.generatedFile':'File generato:'
+          'insiderClose':'Chiudi','entryLocked':'Ingresso bloccato: un mapping è già caricato. Completa prima il processo corrente.','warn.unmappedHeader':'Nota: I seguenti ruoli AD/ORBIS non hanno mapping e quindi non compaiono nel TXT:','warn.generatedFile':'File generato:','newRoleBadge':'✨ Nuovo','metaEdit':'Modifica','metaOk':'OK','sourceEdit':'Modifica','sourceOk':'OK','sourceDelete':'Elimina'
         },
         fr: {
           title: 'LDAP/ORBIS → Keycloak Rolemappe',
@@ -459,12 +477,12 @@
           'copyFrom':'Copier vers ce rôle depuis :',
           'selectRole':'-- sélectionner un rôle --',
           'copyBtn':'Copier',
-          'generateTxt':'Générer TXT','saveMapping':'Enregistrer mapping','updateMapping':'Mettre à jour le mapping sur le serveur','updateHint':'Remarque : "Mettre à jour le mapping sur le serveur" écrase la version existante sans historique.','btn.loadMapping':'Charger mapping','btn.parseMappingText':'Parser le texte et charger','btn.addSourceRole':'+ Ajouter un rôle','btn.freshStart':'Repartir à zéro','mappingCodePh':'Saisir le code mapping','mappingRawPh':'Coller le contenu de orbis-ds.xml ou ad-ds.xml','customerPh':'Client (interne, non inclus dans le téléchargement)','countryLabel':'Pays :','postalLabel':'Code postal :','cityLabel':'Ville :','customerNoLabel':'N° client :','sideLabel':'Site :','customerLabel':'Client :','countryPh':'Pays','postalPh':'Code postal','cityPh':'Ville','customerNoPh':'N° client','sidePh':'Site','personaFilterPh':'Filtrer les personas...','rolesFilterPh':'Filtrer les rôles...','rolesColA':'Rôles d\'autorisation DU','customRoles':'Rôles personnalisés','customRolesPh':'Insérer des rôles par ligne, virgule ou point-virgule','addCustomRoles':'Ajouter des rôles','newSourceRolePh':'Ajouter un nouveau rôle LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrer les rôles AD/ORBIS :','sourceRolesFilterPh':'Filtrer les rôles AD/ORBIS...','btn.showSourceRolesList':'Afficher la liste des rôles','sourceRolesListTitle':'Liste des rôles AD/ORBIS','sourceRolesListHint':'Tous les rôles AD/ORBIS actuellement chargés :','bulkAssignHint':'Déposer ici persona/rôle DU/rôle personnalisé → affecter à tous les rôles AD/ORBIS actuellement visibles',
+          'generateTxt':'Générer TXT','saveMapping':'Enregistrer mapping','updateMapping':'Mettre à jour le mapping sur le serveur','updateHint':'Remarque : "Mettre à jour le mapping sur le serveur" écrase la version existante sans historique.','btn.loadMapping':'Charger mapping','btn.parseMappingText':'Parser le texte et charger','btn.addSourceRole':'+ Ajouter un rôle','btn.freshStart':'Repartir à zéro','mappingCodePh':'Saisir le code mapping','mappingRawPh':'Coller le contenu de orbis-ds.xml ou ad-ds.xml','customerPh':'Client (interne, non inclus dans le téléchargement)','countryLabel':'Pays :','postalLabel':'Code postal :','cityLabel':'Ville :','customerNoLabel':'N° client :','sideLabel':'Site :','customerLabel':'Client :','countryPh':'Pays','postalPh':'Code postal','cityPh':'Ville','customerNoPh':'N° client','sidePh':'Site','personaFilterPh':'Filtrer les personas...','rolesFilterPh':'Filtrer les rôles...','rolesColA':'Rôles d\'autorisation DU','customRoles':'Rôles personnalisés','customRolesPh':'Insérer des rôles par ligne, virgule ou point-virgule','addCustomRoles':'Ajouter des rôles','newSourceRolePh':'Ajouter un nouveau rôle LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrer les rôles AD/ORBIS :','sourceRolesFilterPh':'Filtrer les rôles AD/ORBIS...','btn.showSourceRolesList':'Afficher la liste des rôles','sourceRolesListTitle':'Liste des rôles AD/ORBIS','sourceRolesListHint':'Tous les rôles AD/ORBIS actuellement chargés :','sourceRolesNew':'Nouveaux','sourceRolesExisting':'Existants','sourceRolesExport':'Exporter TXT','bulkAssignHint':'Déposer ici persona/rôle DU/rôle personnalisé → affecter à tous les rôles AD/ORBIS actuellement visibles',
           'chooseFile':'Choisir un fichier',
           'noFile':'Aucun fichier sélectionné',
           'insiderTitle':'👻 Coin insider',
           'insiderText':'👻 Bonjour utilisateur, je suis heureux de te voir ici ! Je fais semblant d\'être calme… et je publie discrètement des versions à côté. Ce projet m\'amuse tellement que même mes bugs arrivent à l\'heure. Facteur fun du projet : 9/10 chaînes fantômes.',
-          'insiderClose':'Fermer','entryLocked':'Entrée verrouillée : un mapping est déjà chargé. Terminez d\'abord le processus en cours.','warn.unmappedHeader':'Remarque : les rôles AD/ORBIS suivants n\'ont pas de mapping et n\'apparaissent donc pas dans le TXT :','warn.generatedFile':'Fichier généré :',
+          'insiderClose':'Fermer','entryLocked':'Entrée verrouillée : un mapping est déjà chargé. Terminez d\'abord le processus en cours.','warn.unmappedHeader':'Remarque : les rôles AD/ORBIS suivants n\'ont pas de mapping et n\'apparaissent donc pas dans le TXT :','warn.generatedFile':'Fichier généré :','newRoleBadge':'✨ Nouveau','metaEdit':'Modifier','metaOk':'OK','sourceEdit':'Modifier','sourceOk':'OK','sourceDelete':'Supprimer',
         },
         pt: {
           title: 'LDAP/ORBIS → Keycloak Rolemappe',
@@ -487,12 +505,12 @@
           'copyFrom':'Copiar para este role de:',
           'selectRole':'-- selecionar role --',
           'copyBtn':'Copiar',
-          'generateTxt':'Gerar TXT','saveMapping':'Salvar mapping','updateMapping':'Atualizar mapping no servidor','updateHint':'Observação: "Atualizar mapping no servidor" sobrescreve a versão existente sem histórico.','btn.loadMapping':'Carregar mapping','btn.parseMappingText':'Analisar texto e carregar','btn.addSourceRole':'+ Adicionar role','btn.freshStart':'Começar do zero','mappingCodePh':'Inserir código mapping','mappingRawPh':'Cole o conteúdo de orbis-ds.xml ou ad-ds.xml','customerPh':'Cliente (interno, não no download)','countryLabel':'País:','postalLabel':'CEP:','cityLabel':'Cidade:','customerNoLabel':'Nº cliente:','sideLabel':'Local:','customerLabel':'Cliente:','countryPh':'País','postalPh':'CEP','cityPh':'Cidade','customerNoPh':'Nº cliente','sidePh':'Local','personaFilterPh':'Filtrar personas...','rolesFilterPh':'Filtrar roles...','rolesColA':'Roles de permissão DU','customRoles':'Roles personalizados','customRolesPh':'Inserir roles por linha, vírgula ou ponto e vírgula','addCustomRoles':'Adicionar roles','newSourceRolePh':'Adicionar novo role LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrar roles AD/ORBIS:','sourceRolesFilterPh':'Filtrar roles AD/ORBIS...','btn.showSourceRolesList':'Mostrar lista de roles','sourceRolesListTitle':'Lista de roles AD/ORBIS','sourceRolesListHint':'Todos os roles AD/ORBIS carregados no momento:','bulkAssignHint':'Solte persona/role DU/role personalizado aqui → atribuir a todos os roles AD/ORBIS visíveis no momento',
+          'generateTxt':'Gerar TXT','saveMapping':'Salvar mapping','updateMapping':'Atualizar mapping no servidor','updateHint':'Observação: "Atualizar mapping no servidor" sobrescreve a versão existente sem histórico.','btn.loadMapping':'Carregar mapping','btn.parseMappingText':'Analisar texto e carregar','btn.addSourceRole':'+ Adicionar role','btn.freshStart':'Começar do zero','mappingCodePh':'Inserir código mapping','mappingRawPh':'Cole o conteúdo de orbis-ds.xml ou ad-ds.xml','customerPh':'Cliente (interno, não no download)','countryLabel':'País:','postalLabel':'CEP:','cityLabel':'Cidade:','customerNoLabel':'Nº cliente:','sideLabel':'Local:','customerLabel':'Cliente:','countryPh':'País','postalPh':'CEP','cityPh':'Cidade','customerNoPh':'Nº cliente','sidePh':'Local','personaFilterPh':'Filtrar personas...','rolesFilterPh':'Filtrar roles...','rolesColA':'Roles de permissão DU','customRoles':'Roles personalizados','customRolesPh':'Inserir roles por linha, vírgula ou ponto e vírgula','addCustomRoles':'Adicionar roles','newSourceRolePh':'Adicionar novo role LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrar roles AD/ORBIS:','sourceRolesFilterPh':'Filtrar roles AD/ORBIS...','btn.showSourceRolesList':'Mostrar lista de roles','sourceRolesListTitle':'Lista de roles AD/ORBIS','sourceRolesListHint':'Todos os roles AD/ORBIS carregados no momento:','sourceRolesNew':'Recém-adicionados','sourceRolesExisting':'Existentes','sourceRolesExport':'Exportar TXT','bulkAssignHint':'Solte persona/role DU/role personalizado aqui → atribuir a todos os roles AD/ORBIS visíveis no momento',
           'chooseFile':'Selecionar arquivo',
           'noFile':'Nenhum arquivo selecionado',
           'insiderTitle':'👻 Cantinho insider',
           'insiderText':'👻 Olá usuário, fico feliz em ter você aqui! Eu ajo como se estivesse calmo… e vou lançando versões em paralelo. Este projeto está tão divertido que até meus bugs são pontuais. Fator diversão no projeto: 9/10 correntes fantasma.',
-          'insiderClose':'Fechar','entryLocked':'Entrada bloqueada: um mapping já está carregado. Conclua primeiro o processo atual.','warn.unmappedHeader':'Observação: os seguintes roles AD/ORBIS não têm mapping e por isso não aparecem no TXT:','warn.generatedFile':'Arquivo gerado:'
+          'insiderClose':'Fechar','entryLocked':'Entrada bloqueada: um mapping já está carregado. Conclua primeiro o processo atual.','warn.unmappedHeader':'Observação: os seguintes roles AD/ORBIS não têm mapping e por isso não aparecem no TXT:','warn.generatedFile':'Arquivo gerado:','newRoleBadge':'✨ Novo','metaEdit':'Editar','metaOk':'OK','sourceEdit':'Editar','sourceOk':'OK','sourceDelete':'Excluir'
         },
         es: {
           title: 'LDAP/ORBIS → Keycloak Rolemappe',
@@ -515,12 +533,12 @@
           'copyFrom':'Copiar a este rol desde:',
           'selectRole':'-- seleccionar rol --',
           'copyBtn':'Copiar',
-          'generateTxt':'Generar TXT','saveMapping':'Guardar mapping','updateMapping':'Actualizar mapping en el servidor','updateHint':'Nota: "Actualizar mapping en el servidor" sobrescribe la versión existente sin historial.','btn.loadMapping':'Cargar mapping','btn.parseMappingText':'Analizar texto y cargar','btn.addSourceRole':'+ Añadir rol','btn.freshStart':'Comenzar desde cero','mappingCodePh':'Introducir código mapping','mappingRawPh':'Pega el contenido de orbis-ds.xml o ad-ds.xml','customerPh':'Cliente (interno, no en la descarga)','countryLabel':'País:','postalLabel':'Código postal:','cityLabel':'Ciudad:','customerNoLabel':'Nº cliente:','sideLabel':'Ubicación:','customerLabel':'Cliente:','countryPh':'País','postalPh':'Código postal','cityPh':'Ciudad','customerNoPh':'Nº cliente','sidePh':'Ubicación','personaFilterPh':'Filtrar personas...','rolesFilterPh':'Filtrar roles...','rolesColA':'Roles de permisos DU','customRoles':'Roles personalizados','customRolesPh':'Insertar roles por línea, coma o punto y coma','addCustomRoles':'Añadir roles','newSourceRolePh':'Añadir nuevo rol LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrar roles AD/ORBIS:','sourceRolesFilterPh':'Filtrar roles AD/ORBIS...','btn.showSourceRolesList':'Mostrar lista de roles','sourceRolesListTitle':'Lista de roles AD/ORBIS','sourceRolesListHint':'Todos los roles AD/ORBIS cargados actualmente:','bulkAssignHint':'Soltar aquí persona/rol DU/rol personalizado → asignar a todos los roles AD/ORBIS visibles actualmente',
+          'generateTxt':'Generar TXT','saveMapping':'Guardar mapping','updateMapping':'Actualizar mapping en el servidor','updateHint':'Nota: "Actualizar mapping en el servidor" sobrescribe la versión existente sin historial.','btn.loadMapping':'Cargar mapping','btn.parseMappingText':'Analizar texto y cargar','btn.addSourceRole':'+ Añadir rol','btn.freshStart':'Comenzar desde cero','mappingCodePh':'Introducir código mapping','mappingRawPh':'Pega el contenido de orbis-ds.xml o ad-ds.xml','customerPh':'Cliente (interno, no en la descarga)','countryLabel':'País:','postalLabel':'Código postal:','cityLabel':'Ciudad:','customerNoLabel':'Nº cliente:','sideLabel':'Ubicación:','customerLabel':'Cliente:','countryPh':'País','postalPh':'Código postal','cityPh':'Ciudad','customerNoPh':'Nº cliente','sidePh':'Ubicación','personaFilterPh':'Filtrar personas...','rolesFilterPh':'Filtrar roles...','rolesColA':'Roles de permisos DU','customRoles':'Roles personalizados','customRolesPh':'Insertar roles por línea, coma o punto y coma','addCustomRoles':'Añadir roles','newSourceRolePh':'Añadir nuevo rol LDAP/ORBIS','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'Filtrar roles AD/ORBIS:','sourceRolesFilterPh':'Filtrar roles AD/ORBIS...','btn.showSourceRolesList':'Mostrar lista de roles','sourceRolesListTitle':'Lista de roles AD/ORBIS','sourceRolesListHint':'Todos los roles AD/ORBIS cargados actualmente:','sourceRolesNew':'Recién añadidos','sourceRolesExisting':'Existentes','sourceRolesExport':'Exportar TXT','bulkAssignHint':'Soltar aquí persona/rol DU/rol personalizado → asignar a todos los roles AD/ORBIS visibles actualmente',
           'chooseFile':'Seleccionar archivo',
           'noFile':'Ningún archivo seleccionado',
           'insiderTitle':'👻 Rincón insider',
           'insiderText':'👻 ¡Hola usuario, me alegra mucho tenerte aquí! Actúo como si estuviera tranquilo… y voy subiendo versiones por detrás. Este proyecto me divierte tanto que hasta mis bugs llegan puntuales. Factor de diversión del proyecto: 9/10 cadenas fantasma.',
-          'insiderClose':'Cerrar','entryLocked':'Entrada bloqueada: ya hay un mapping cargado. Primero finaliza el proceso actual.','warn.unmappedHeader':'Nota: los siguientes roles AD/ORBIS no tienen mapping y por eso no aparecen en el TXT:','warn.generatedFile':'Archivo generado:'
+          'insiderClose':'Cerrar','entryLocked':'Entrada bloqueada: ya hay un mapping cargado. Primero finaliza el proceso actual.','warn.unmappedHeader':'Nota: los siguientes roles AD/ORBIS no tienen mapping y por eso no aparecen en el TXT:','warn.generatedFile':'Archivo generado:','newRoleBadge':'✨ Nuevo','metaEdit':'Editar','metaOk':'OK','sourceEdit':'Editar','sourceOk':'OK','sourceDelete':'Eliminar'
         }
         
       };
@@ -547,6 +565,11 @@
         updateMenuLangLinks(lang);
         localStorage.setItem('rolemapper_lang', lang); document.cookie='rolemapper_lang='+encodeURIComponent(lang)+'; path=/; max-age=31536000; SameSite=Lax';
       };
+      const tKey = (key) => {
+        const lang = (langSwitch && langSwitch.value) || initialLang || 'de';
+        const dict = I18N[lang] || I18N.de || {};
+        return dict[key] || (I18N.de && I18N.de[key]) || key;
+      };
 
       const langSwitch = document.getElementById('langSwitch');
       const langFromUrl = (new URLSearchParams(window.location.search).get('lang') || '').toLowerCase();
@@ -566,6 +589,7 @@
             const dict = I18N[langSwitch.value] || I18N.de;
             lbl.textContent = dict.noFile || 'No file selected';
           }
+          if (typeof setMetaEditButtonState === 'function') setMetaEditButtonState();
         });
       }
       applyLang(initialLang);
@@ -714,7 +738,7 @@
 
       const setMetaEditButtonState = () => {
         if (!metaEditBtn) return;
-        metaEditBtn.textContent = metaEditing ? 'OK' : 'Ändern';
+        metaEditBtn.textContent = metaEditing ? tKey('metaOk') : tKey('metaEdit');
       };
 
       const setMetaInlineEditMode = (editing) => {
@@ -963,7 +987,7 @@
         if(!sourceWrap) return;
         const hidden=document.createElement('input'); hidden.type='hidden'; hidden.name='source_roles'; hidden.value=safe; sourceWrap.appendChild(hidden);
         const row=document.createElement('div'); row.className='source-bucket-row'; row.setAttribute('data-source-row',safe); row.style.cssText='margin:10px 0; padding:10px; border:1px solid #dfe7ef; border-radius:10px;';
-        row.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><strong class="source-role-name">${safe}</strong><button type="button" class="source-action-btn source-edit-btn">Ändern</button><span class="source-action-spacer"></span><button type="button" class="source-action-btn source-del-btn">Löschen</button></div>
+        row.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><strong class="source-role-name">${safe}</strong><button type="button" class="source-action-btn source-edit-btn" data-i18n="sourceEdit">${tKey('sourceEdit')}</button><span class="source-action-spacer"></span><button type="button" class="source-action-btn source-del-btn" data-i18n="sourceDelete">${tKey('sourceDelete')}</button></div>
           <div style="display:flex; gap:8px; margin:6px 0; flex-wrap:wrap;">
             <label style="font-size:12px; color:#5f7185;" data-i18n="copyFrom">Copy to this role from:</label>
             <select class="copy-from" data-target="${safe}"><option value="" data-i18n="selectRole">-- select role --</option></select>
@@ -989,14 +1013,34 @@
       const showSourceRolesListBtn = document.getElementById('showSourceRolesListBtn');
       const sourceRolesModal = document.getElementById('sourceRolesModal');
       const closeSourceRolesModalBtn = document.getElementById('closeSourceRolesModalBtn');
+      const exportSourceRolesBtn = document.getElementById('exportSourceRolesBtn');
       const sourceRolesListUl = document.getElementById('sourceRolesListUl');
       const sourceRolesListCount = document.getElementById('sourceRolesListCount');
 
       const fillSourceRolesList = () => {
         if (!sourceRolesListUl) return;
-        const roles = Array.from(document.querySelectorAll('.bucket[data-source]')).map(b => String(b.dataset.source||'').trim()).filter(Boolean).sort((a,b)=>a.localeCompare(b));
-        sourceRolesListUl.innerHTML = roles.map(r => `<li>${r}</li>`).join('');
-        if (sourceRolesListCount) sourceRolesListCount.textContent = String(roles.length);
+        const rows = Array.from(document.querySelectorAll('.source-bucket-row'));
+        const roleMeta = rows.map((row) => {
+          const role = String(row.getAttribute('data-source-row') || '').trim();
+          const isNew = row.classList.contains('newly-added-source');
+          return { role, isNew };
+        }).filter(x => x.role);
+        roleMeta.sort((a,b)=>a.role.localeCompare(b.role));
+
+        const newRoles = roleMeta.filter(x => x.isNew).map(x => x.role);
+        const baseRoles = roleMeta.filter(x => !x.isNew).map(x => x.role);
+
+        const sectionHtml = (title, roles, showNewBadge) => {
+          if (!roles.length) return '';
+          const titleSafe = String(title || '');
+          const items = roles.map((r) => `<li>${r}${showNewBadge ? ` <span class="source-new-badge" style="margin-left:6px;">${tKey('newRoleBadge')}</span>` : ''}</li>`).join('');
+          return `<li style="list-style:none;margin:8px 0 4px 0;padding:0;"><strong>${titleSafe}</strong></li>${items}`;
+        };
+
+        sourceRolesListUl.innerHTML =
+          sectionHtml(tKey('sourceRolesNew'), newRoles, true) +
+          sectionHtml(tKey('sourceRolesExisting'), baseRoles, false);
+        if (sourceRolesListCount) sourceRolesListCount.textContent = String(roleMeta.length);
       };
       const openSourceRolesModal = () => {
         fillSourceRolesList();
@@ -1013,6 +1057,23 @@
       };
       if (showSourceRolesListBtn) showSourceRolesListBtn.addEventListener('click', openSourceRolesModal);
       if (closeSourceRolesModalBtn) closeSourceRolesModalBtn.addEventListener('click', closeSourceRolesModal);
+      if (exportSourceRolesBtn) {
+        exportSourceRolesBtn.addEventListener('click', () => {
+          const roles = Array.from(document.querySelectorAll('.bucket[data-source]'))
+            .map((b) => String(b.dataset.source || '').trim())
+            .filter(Boolean)
+            .sort((a,b)=>a.localeCompare(b));
+          const content = roles.join('\n') + (roles.length ? '\n' : '');
+          const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+          const a = document.createElement('a');
+          const ts = new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14);
+          a.href = URL.createObjectURL(blob);
+          a.download = `source-roles-${ts}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+        });
+      }
       if (sourceRolesModal) sourceRolesModal.addEventListener('click', (e) => { if (e.target === sourceRolesModal) closeSourceRolesModal(); });
 
       const bulkAssignZone = document.getElementById('bulkAssignZone');
@@ -1072,11 +1133,11 @@
             input.style.cssText = 'padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;min-width:260px;';
             input.value = oldName;
             titleEl.replaceWith(input);
-            editBtn.textContent = 'OK';
+            editBtn.textContent = tKey('sourceOk');
             row.setAttribute('data-editing', '1');
             input.focus();
             input.select();
-            input.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); editBtn.click(); } if(ev.key==='Escape'){ ev.preventDefault(); row.setAttribute('data-editing','0'); const span=document.createElement('strong'); span.className='source-role-name'; span.textContent=oldName; input.replaceWith(span); editBtn.textContent='Ändern'; }});
+            input.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); editBtn.click(); } if(ev.key==='Escape'){ ev.preventDefault(); row.setAttribute('data-editing','0'); const span=document.createElement('strong'); span.className='source-role-name'; span.textContent=oldName; input.replaceWith(span); editBtn.textContent=tKey('sourceEdit'); }});
             return;
           }
 
@@ -1099,7 +1160,7 @@
           if (sel) sel.setAttribute('data-target', nextName);
           document.querySelectorAll('.copy-from option').forEach((op)=>{ if (op.value === oldName) { op.value = nextName; op.textContent = nextName; } });
           row.setAttribute('data-editing', '0');
-          editBtn.textContent = 'Ändern';
+          editBtn.textContent = tKey('sourceEdit');
           refreshCopySelects();
             applySourceRoleFilter();
           return;
@@ -1146,11 +1207,8 @@
       const form=document.getElementById('assignForm');
       markUnknownInBuckets();
 
-      if(form) form.addEventListener('submit', (ev)=>{
-
-        const tsEl = document.getElementById('mapping_client_ts');
-        if (tsEl) tsEl.value = new Date().toISOString();
-        const data={};
+      const collectCurrentAssignments = () => {
+        const data = {};
         document.querySelectorAll('.bucket[data-source]').forEach((b)=>{
           const personas=[]; const roles=[];
           Array.from(b.querySelectorAll('.pill')).forEach(p=>{
@@ -1162,7 +1220,38 @@
           });
           data[b.dataset.source]={personas,roles};
         });
-        document.getElementById('assignments_json').value=JSON.stringify(data);
+        return data;
+      };
+
+      const enrichTopFormsWithCurrentContext = () => {
+        const assignments = JSON.stringify(collectCurrentAssignments());
+        const roles = Array.from(document.querySelectorAll('.bucket[data-source]')).map((b) => (b.dataset.source || '').trim()).filter(Boolean);
+        document.querySelectorAll('.existing-assignments-field').forEach((el) => { el.value = assignments; });
+        document.querySelectorAll('.existing-sources-holder').forEach((holder) => {
+          holder.innerHTML = '';
+          roles.forEach((src) => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'existing_source_roles';
+            hidden.value = src;
+            holder.appendChild(hidden);
+          });
+        });
+      };
+
+      document.querySelectorAll('form').forEach((f) => {
+        const actionEl = f.querySelector('input[name="action"]');
+        if (!actionEl) return;
+        const action = String(actionEl.value || '');
+        if (!['mapping_upload','manual_test','dirty_keycloak_import','mapping_plus_load'].includes(action)) return;
+        f.addEventListener('submit', enrichTopFormsWithCurrentContext);
+      });
+
+      if(form) form.addEventListener('submit', (ev)=>{
+
+        const tsEl = document.getElementById('mapping_client_ts');
+        if (tsEl) tsEl.value = new Date().toISOString();
+        document.getElementById('assignments_json').value=JSON.stringify(collectCurrentAssignments());
 
       });
 

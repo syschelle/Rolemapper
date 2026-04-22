@@ -66,7 +66,124 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.0 (current)
+## v1.0.9 (current)
+- Anfrage: In der History wird der Benutzer aus dem Cookie nicht angezeigt.
+- Antwort: Behoben. History-Einträge verwenden jetzt bevorzugt die aufgelöste Editor-Identität (inkl. Cookie-/SSO-/manuellem Namen + Rolle) statt nur generischer Werte wie `admin`/`user`.
+- Änderungen:
+  - `app.py`:
+    - `_history_actor()` auf `_editor_identity()` umgestellt (mit Fallback).
+    - Dadurch erscheinen in neuen Historieneinträgen z. B. `Sylvio (admin)` statt nur `admin`.
+
+## v1.0.8
+- Anfrage: Zugriff auf eine History, um Änderungen im Mapping zurückzuspielen.
+- Antwort: Umgesetzt. In `Server-Mappings` gibt es jetzt eine History-Aktion pro Mapping-Code inkl. Restore-Funktion (Admin).
+- Änderungen:
+  - `app.py`:
+    - Neue API: `GET /mapping-plus-history/<code>` (liefert Historieneinträge).
+    - Neue API: `POST /mapping-plus-restore` (stellt eine gewählte Historienversion wieder her, admin-only).
+    - Beim Restore wird ein neuer History-Eintrag `restore` geschrieben.
+  - `admin_mappings.html`:
+    - Neue Spalte/Action `History` pro Mapping.
+    - Popup/Fenster mit Historieneinträgen (ID, Event, Zeit, Actor, Zeilen).
+    - Für Admin: Button `Restore` je Eintrag (mit Bestätigung).
+    - Layout/Colspan entsprechend erweitert.
+    - i18n-Keys für History-Spalte/-Button in DE/EN/IT/FR/PT/ES ergänzt.
+
+## v1.0.7
+- Anfrage: In „Rollenliste anzeigen“ neu hinzugefügte Rollen mit aufführen/parkieren und einen Export als reine Textdatei (ohne Mapping) ermöglichen.
+- Antwort: Umgesetzt. Das Rollenlisten-Fenster gruppiert jetzt Rollen in „Neu hinzugefügt“ und „Bestehend“; zusätzlich gibt es einen TXT-Export aller aktuellen AD/ORBIS-SOURCE-Rollen ohne Mappinginhalte.
+- Änderungen:
+  - `index.html`:
+    - Modal „Rollenliste anzeigen“ erweitert um Button `Export TXT`.
+    - Rollenliste im Modal gruppiert:
+      - `sourceRolesNew` (neu hinzugefügt)
+      - `sourceRolesExisting` (bestehend)
+    - Neue Rollen erhalten auch in der Listenansicht das „Neu“-Badge.
+    - Export erzeugt Datei `source-roles-<timestamp>.txt` (eine Rolle pro Zeile, ohne Mapping).
+    - Neue i18n-Keys ergänzt für DE/EN/IT/FR/PT/ES:
+      - `sourceRolesNew`, `sourceRolesExisting`, `sourceRolesExport`
+
+## v1.0.6
+- Anfrage: Der Button „Ändern“ in den AD/ORBIS-Rollen wird beim Sprachwechsel nicht übersetzt.
+- Antwort: Behoben. Die Buttons im AD/ORBIS-Bereich sind jetzt vollständig i18n-fähig (inkl. dynamischer Zeilen und Edit-Status).
+- Änderungen:
+  - `index.html`:
+    - Statische Buttons mit i18n-Keys versehen:
+      - `metaEditBtn` -> `metaEdit`
+      - Rollenzeilen-Buttons -> `sourceEdit`, `sourceDelete`
+    - JS-Textumschaltung von Hardcoded-Strings auf i18n-Keys umgestellt:
+      - `sourceOk`, `sourceEdit`
+      - `metaOk`, `metaEdit`
+    - Dynamisch erzeugte Rollenzeilen verwenden ebenfalls i18n-Keys.
+    - Neue Übersetzungskeys ergänzt für DE/EN/IT/FR/PT/ES.
+    - Beim Sprachwechsel wird der Meta-Edit-Buttonzustand neu lokalisiert.
+
+## v1.0.5
+- Anfrage: Die Hervorhebung neuer AD/ORBIS-Rollen soll markanter sein; außerdem Übersetzungen für andere Sprachen berücksichtigen.
+- Antwort: Umgesetzt. Die visuelle Hervorhebung wurde deutlich verstärkt (stärkerer Verlauf + linker Akzentbalken), und das Badge ist jetzt vollständig i18n-fähig in allen unterstützten UI-Sprachen.
+- Änderungen:
+  - `index.html`:
+    - Hervorhebung `.newly-added-source` markanter gestaltet:
+      - stärkerer Hintergrundverlauf
+      - zusätzlicher linker Akzentbalken in Headerfarbe
+    - Badge-Stil sichtbar kräftiger gemacht.
+    - Badge-Text auf i18n-Key umgestellt (`newRoleBadge`).
+    - Übersetzungen ergänzt für DE/EN/IT/FR/PT/ES.
+
+## v1.0.4
+- Anfrage: Der Rahmen für neu hinzugefügte Rollen wirkt optisch nicht schön; bitte wieder wie vorher, aber neue Rollen trotzdem klar erkennbar machen.
+- Antwort: Umgesetzt. Der Standard-Rahmen wurde zurückgesetzt, stattdessen gibt es jetzt eine dezentere visuelle Hervorhebung für neue Rollen.
+- Änderungen:
+  - `index.html`:
+    - Rahmen wieder auf den bisherigen Standard (`#dfe7ef`) gesetzt.
+    - Für neu hinzugefügte Rollen-Buckets (`.newly-added-source`) dezenter Hintergrundverlauf ergänzt.
+    - Neues Badge `✨ Neu` direkt neben dem Rollennamen für klare Kennzeichnung ergänzt.
+
+## v1.0.3
+- Anfrage: Der Rahmen neu hinzugefügter AD/ORBIS-Rollen soll in Header-Farbe erscheinen; bisher sichtbar nicht zuverlässig umgesetzt.
+- Antwort: Behoben. Statt `var(--primary)` (nicht überall definiert) wird nun explizit die Header-Farbe `#0d3b66` verwendet, zusätzlich mit Klasse `.newly-added-source` als visuelle Absicherung.
+- Änderungen:
+  - `index.html`:
+    - Rahmenfarbe neu hinzugefügter SOURCE-Buckets auf `#0d3b66` gesetzt.
+    - CSS-Klasse `.newly-added-source` ergänzt (`border-color` + subtiler Inset-Highlight), damit der Effekt auch bei künftigen Style-Änderungen stabil bleibt.
+
+## v1.0.2
+- Anfrage: Auch bei bereits geladenem Mapping (Server oder mapping.txt) sollen über alle 4 oberen Optionen zusätzliche AD/ORBIS-Rollen ergänzt werden können, statt die bestehenden zu ersetzen.
+- Antwort: Umgesetzt. Die vier Einstiegsaktionen mergen jetzt neue SOURCE-Rollen in den aktuellen Mapping-Kontext hinein (inkl. bestehender Zuordnungen), statt den Zustand zu überschreiben.
+- Anfrage: Neu über die oberen Optionen ergänzte AD/ORBIS-Rollen sollen mit Header-Farbe hervorgehoben werden.
+- Antwort: Umgesetzt. Neu hinzugefügte Rollen-Buckets werden in der SOURCE-Liste mit Rahmenfarbe `var(--primary)` (Header-Farbton) markiert.
+- Änderungen:
+  - `app.py`:
+    - `APP_VERSION` auf `1.0.2` erhöht.
+    - Merge-Logik für Kontext-Erweiterung ergänzt:
+      - Parsen bestehender Zuordnungen aus `existing_assignments_json`
+      - Zusammenführen von bestehenden + neu importierten SOURCE-Rollen für `mapping_upload`, `manual_test`, `dirty_keycloak_import`, `mapping_plus_load`
+      - Beibehaltung vorhandener Persona-/Rollen-Zuordnungen; neue Rollen werden additiv ergänzt.
+    - Rückgabe neuer Template-Variable `added_source_roles` zur UI-Hervorhebung.
+  - `index.html`:
+    - Einstiegs-Sperre entfernt (`entry_locked = false`), damit alle 4 oberen Optionen auch im laufenden Mapping nutzbar bleiben.
+    - Top-Formulare senden den aktuellen Mapping-Kontext mit (`existing_source_roles`, `existing_assignments_json`).
+    - JS ergänzt, das vor Submit der oberen Formulare die aktuelle Bucket-Struktur serialisiert und mitschickt.
+    - Neu ergänzte SOURCE-Rollen erhalten einen Rahmen in Header-Farbe.
+
+## v1.0.1
+- Anfrage: Externe Authentifizierungsrollen ohne Zuordnung sollen in der Datenbank erhalten bleiben, aber nicht in die `mapping.txt` exportiert werden.
+- Antwort: Umgesetzt. Ungemappte SOURCE-Rollen bleiben jetzt als `source_roles` im Server-Mapping erhalten und erscheinen wieder beim Laden, werden aber weiterhin nicht als `SOURCE=TARGET` in die Export-TXT geschrieben.
+- Anfrage: Kundendaten-Änderung auf der Hauptseite wieder aktivieren.
+- Antwort: Umgesetzt. Die Schreibsperre für Nicht-Admin im Hauptseiten-Flow wurde entfernt und der Inline-Button `Ändern` in der Kundendatenzeile wieder sichtbar/funktionsfähig gemacht.
+- Anfrage: In „Externe Authentifizierungsrollen“ eine Checkbox ergänzen, um externe Rollen automatisch als individuelle Rollen pro AD/ORBIS-Rolle vorzubelegen.
+- Antwort: Umgesetzt. Neue Checkbox unterhalb der Textarea ergänzt; bei aktivierter Option werden die eingegebenen externen Rollen beim Start direkt als individuelle Rollen (`SOURCE -> SOURCE`) rechts vorbefüllt.
+- Änderungen:
+  - `app.py`:
+    - `APP_VERSION` auf `1.0.1` erhöht.
+    - `load_mapping_plus_bundle(...)` rekonstruiert `source_roles` robust als leere Buckets, auch wenn bereits einzelne Mapping-Zeilen vorhanden sind.
+    - `manual_test` unterstützt `auto_map_external_to_individual` und setzt bei aktivierter Checkbox `prefill_roles = {src: [src]}`.
+    - Kundendaten-Edit-Sperre für Nicht-Admin auf der Hauptseite entfernt.
+  - `index.html`:
+    - Inline-Kundendaten-Button `Ändern` nicht mehr nur admin-gebunden.
+    - Neue Checkbox in der Kachel „Externe Authentifizierungsrollen“ ergänzt.
+
+## v1.0.0
 - Stable Release `1.0.0` erstellt und für GitHub-Deployment vorbereitet.
 - Version im Backend auf `APP_VERSION = "1.0.0"` angehoben.
 - Deployment-/Compose-Stand konsolidiert (inkl. DB-Persistenz über `mapping_store`).
