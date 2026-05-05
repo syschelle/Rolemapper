@@ -83,7 +83,7 @@ DEFAULT_PERSONAS = [
 
 app = Flask(__name__)
 app.secret_key = "rolemapper-local-dev"
-APP_VERSION = "1.0.9"
+APP_VERSION = "1.0.12"
 SUPPORTED_LANGS = ["de", "en", "it", "fr", "pt", "es"]
 
 

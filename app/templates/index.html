@@ -38,7 +38,9 @@
     .pill-del-btn{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid #f1b5b5;background:#fff5f5;color:#b42318;font-size:10px;line-height:1;cursor:pointer;user-select:none;flex:0 0 auto;}
     .pill-del-btn:hover{background:#ffe3e3;color:#7f1d1d;}
     .pill[data-kind="persona"] { background:#e9f9ef; border-color:#9ed6af; color:#1f6b3a; }
+    .pill.sbk-role { background:#fff7d6; border-color:#e6cf70; color:#6f5a00; }
     .pill.unknown { color:#b42318; border-color:#f7b5b5; background:#fff5f5; }
+    .pill.sbk-role.unknown { background:#fff3bf; border-color:#d4b106; color:#6f5a00; }
     .pool-item{display:inline-flex;align-items:center;gap:6px;max-width:100%;}
     .pool-actions{display:inline-flex;gap:4px;}
     .role-action-btn{padding:2px 6px;font-size:11px;border-radius:6px;}
@@ -146,7 +148,7 @@
             <textarea id="manual_roles" name="manual_roles" {% if entry_locked %}disabled{% endif %}></textarea><br>
             <label style="display:flex;align-items:center;gap:8px;margin:8px 0 12px 0;font-size:13px;color:#334155;">
               <input type="checkbox" name="auto_map_external_to_individual" value="1" {% if entry_locked %}disabled{% endif %}>
-              Externe Rollen automatisch als individuelle Rollen pro AD/ORBIS-Rolle vorbefüllen
+              <span data-i18n="label.autoMapExternalToIndividual">AD/ORBIS-Rolle gleich PACS-Client-Rolle</span>
             </label>
             <button type="button" id="fillSampleBtn" data-i18n="btn.fillSample" {% if entry_locked %}disabled{% endif %}>Beispielrollen einfügen</button>
             <button type="submit" data-i18n="btn.createTest" {% if entry_locked %}disabled{% endif %}>Mapping beginnen</button>
@@ -248,6 +250,13 @@
                 <textarea id="customRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" data-i18n-placeholder="customRolesPh" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
                 <button type="button" id="addCustomRolesBtn" data-i18n="addCustomRoles">Rollen hinzufügen</button>
                 <div id="customRolePool" class="dropzone" data-zone="pool-custom" style="margin-top:8px;"></div>
+
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;">
+                  <strong>SBK Rollen</strong>
+                </div>
+                <textarea id="sbkRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
+                <button type="button" id="addSbkRolesBtn">SBK Rollen hinzufügen</button>
+                <div id="sbkRolePool" class="dropzone" data-zone="pool-sbk" style="margin-top:8px;"></div>
               </div>
             </div>
             <div class="card mapping-right">
@@ -295,6 +304,7 @@
                   <label style="font-size:12px; color:#5f7185;" data-i18n="copyFrom">Copy to this role from:</label>
                   <select class="copy-from" data-target="{{ src }}"><option value="" data-i18n="selectRole">-- select role --</option>{% for src2 in source_roles %}{% if src2 != src %}<option value="{{ src2 }}">{{ src2 }}</option>{% endif %}{% endfor %}</select>
                   <button type="button" class="copy-btn" data-target="{{ src }}" data-i18n="copyBtn">Copy</button>
+                  <button type="button" class="all-sbk-btn" data-target="{{ src }}" data-i18n="allSbkRolesBtn">alle SBK Rollen</button>
                 </div>
                 <div class="dropzone bucket" data-source="{{ src }}">
                   {% for p in (prefill_personas|default({})).get(src, []) %}
@@ -387,13 +397,13 @@
           'btn.validate': 'Importieren & Zuordnung vorbereiten',
           'sec.testTitle': 'Externe Authentifizierungsrollen','sec.dirtyTitle':'Dirty Keycloak importieren',
           'btn.createTest': 'Mapping beginnen','btn.dirtyImport':'Dirty Keycloak importieren',
-          'btn.fillSample':'Beispielrollen einfügen',
+          'btn.fillSample':'Beispielrollen einfügen','label.autoMapExternalToIndividual':'AD/ORBIS-Rolle gleich PACS-Client-Rolle',
           'sec.loadTitle':'ad-ds oder orbis-ds code', 'sec.mappingTitle': 'Mapping',
           'msg.loadFirst': 'Bitte zuerst mapping.txt importieren, externe Rollen einfügen oder Mapping-Code vom Server eingeben, damit LDAP/ORBIS-Rollen angezeigt werden.',
           'copyFrom':'In diese Rolle kopieren von:',
           'selectRole':'-- Rolle wählen --',
           'copyBtn':'Kopieren',
-          'generateTxt':'TXT erzeugen','saveMapping':'Mapping speichern','updateMapping':'Mapping am Server aktualisieren','updateHint':'Hinweis: Bei "Mapping am Server aktualisieren" wird die bestehende Version ohne Änderungshistorie überschrieben.','btn.loadMapping':'Mapping laden','btn.parseMappingText':'Text parsen & laden','btn.addSourceRole':'+ Rolle hinzufügen','btn.freshStart':'Neu beginnen','mappingCodePh':'Mapping Code eingeben','mappingRawPh':'Inhalt der orbis-ds.xml oder ad-ds.xml einfügen','customerPh':'Kunde (intern, nicht im Download)','countryLabel':'Land:','postalLabel':'PLZ:','cityLabel':'Stadt:','customerNoLabel':'Kundennummer:','sideLabel':'Standort:','customerLabel':'Kunde:','countryPh':'Land','postalPh':'PLZ','cityPh':'Stadt','customerNoPh':'Kundennummer','sidePh':'Standort','personaFilterPh':'Personas filtern...','rolesFilterPh':'Rollen filtern...','rolesColA':'DU Berechtigungsrollen','customRoles':'Individuelle Rollen','customRolesPh':'Rollen per Zeile, Komma oder Semikolon einfügen','addCustomRoles':'Rollen hinzufügen','newSourceRolePh':'Neue LDAP/ORBIS-Rolle hinzufügen','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'AD/ORBIS-Rollen filtern:','sourceRolesFilterPh':'AD/ORBIS-Rollen filtern...','btn.showSourceRolesList':'Rollenliste anzeigen','sourceRolesListTitle':'AD/ORBIS-Rollenliste','sourceRolesListHint':'Alle aktuell geladenen AD/ORBIS-Rollen:','sourceRolesNew':'Neu hinzugefügt','sourceRolesExisting':'Bestehend','sourceRolesExport':'Export TXT','bulkAssignHint':'Hier Persona/DU-Rolle/individuelle Rolle ablegen → allen aktuell sichtbaren AD/ORBIS-Rollen zuweisen',
+          'generateTxt':'TXT erzeugen','saveMapping':'Mapping speichern','updateMapping':'Mapping am Server aktualisieren','updateHint':'Hinweis: Bei "Mapping am Server aktualisieren" wird die bestehende Version ohne Änderungshistorie überschrieben.','btn.loadMapping':'Mapping laden','btn.parseMappingText':'Text parsen & laden','btn.addSourceRole':'+ Rolle hinzufügen','btn.freshStart':'Neu beginnen','mappingCodePh':'Mapping Code eingeben','mappingRawPh':'Inhalt der orbis-ds.xml oder ad-ds.xml einfügen','customerPh':'Kunde (intern, nicht im Download)','countryLabel':'Land:','postalLabel':'PLZ:','cityLabel':'Stadt:','customerNoLabel':'Kundennummer:','sideLabel':'Standort:','customerLabel':'Kunde:','countryPh':'Land','postalPh':'PLZ','cityPh':'Stadt','customerNoPh':'Kundennummer','sidePh':'Standort','personaFilterPh':'Personas filtern...','rolesFilterPh':'Rollen filtern...','rolesColA':'DU Berechtigungsrollen','customRoles':'Individuelle Rollen','customRolesPh':'Rollen per Zeile, Komma oder Semikolon einfügen','addCustomRoles':'Rollen hinzufügen','allSbkRolesBtn':'alle SBK Rollen','newSourceRolePh':'Neue LDAP/ORBIS-Rolle hinzufügen','dirtyPh':'RoleMapper_<SOURCE>_to_<TARGET> ...','sourceRolesFilterLabel':'AD/ORBIS-Rollen filtern:','sourceRolesFilterPh':'AD/ORBIS-Rollen filtern...','btn.showSourceRolesList':'Rollenliste anzeigen','sourceRolesListTitle':'AD/ORBIS-Rollenliste','sourceRolesListHint':'Alle aktuell geladenen AD/ORBIS-Rollen:','sourceRolesNew':'Neu hinzugefügt','sourceRolesExisting':'Bestehend','sourceRolesExport':'Export TXT','bulkAssignHint':'Hier Persona/DU-Rolle/individuelle Rolle ablegen → allen aktuell sichtbaren AD/ORBIS-Rollen zuweisen',
           'chooseFile':'Datei auswählen',
           'noFile':'Keine Datei ausgewählt',
           'insiderTitle':'👻 Insider-Ecke',
@@ -415,7 +425,7 @@
           'btn.validate': 'Import & prepare assignment',
           'sec.testTitle': 'External authentication roles','sec.dirtyTitle':'Import dirty Keycloak',
           'btn.createTest': 'Start mapping','btn.dirtyImport':'Import dirty Keycloak',
-          'btn.fillSample':'Insert sample roles',
+          'btn.fillSample':'Insert sample roles','label.autoMapExternalToIndividual':'AD/ORBIS role equals PACS client role',
           'sec.loadTitle':'Load mapping', 'sec.mappingTitle': 'Mapping',
           'msg.loadFirst': 'Please import mapping.txt, paste external roles, or enter a mapping code from server first so LDAP/ORBIS roles become visible.',
           'copyFrom':'Copy to this role from:',
@@ -443,7 +453,7 @@
           'btn.validate': 'Importa e prepara assegnazione',
           'sec.testTitle': 'Ruoli di autenticazione esterna','sec.dirtyTitle':'Importa dirty Keycloak',
           'btn.createTest': 'Avvia mapping','btn.dirtyImport':'Importa dirty Keycloak',
-          'btn.fillSample':'Inserisci ruoli di esempio',
+          'btn.fillSample':'Inserisci ruoli di esempio','label.autoMapExternalToIndividual':'Ruolo AD/ORBIS uguale al ruolo client PACS',
           'sec.loadTitle':'Carica mapping', 'sec.mappingTitle': 'Mappatura',
           'msg.loadFirst': 'Importa prima mapping.txt, incolla ruoli esterni o inserisci un codice mapping dal server per mostrare i ruoli LDAP/ORBIS.',
           'copyFrom':'Copia in questo ruolo da:',
@@ -471,7 +481,7 @@
           'btn.validate': 'Valider et préparer l\'affectation',
           'sec.testTitle': 'Rôles d\'authentification externe','sec.dirtyTitle':'Importer dirty Keycloak',
           'btn.createTest': 'Démarrer le mapping','btn.dirtyImport':'Importer dirty Keycloak',
-          'btn.fillSample':'Insérer des rôles d\'exemple',
+          'btn.fillSample':'Insérer des rôles d\'exemple','label.autoMapExternalToIndividual':'Rôle AD/ORBIS égal au rôle client PACS',
           'sec.loadTitle':'Charger mapping', 'sec.mappingTitle': 'Mapping',
           'msg.loadFirst': 'Veuillez d\'abord charger un CSV ou créer une affectation de test afin d\'afficher les rôles LDAP/ORBIS.',
           'copyFrom':'Copier vers ce rôle depuis :',
@@ -499,7 +509,7 @@
           'btn.validate': 'Importar e preparar atribuição',
           'sec.testTitle': 'Roles de autenticação externa','sec.dirtyTitle':'Importar dirty Keycloak',
           'btn.createTest': 'Iniciar mapeamento','btn.dirtyImport':'Importar dirty Keycloak',
-          'btn.fillSample':'Inserir roles de exemplo',
+          'btn.fillSample':'Inserir roles de exemplo','label.autoMapExternalToIndividual':'Role AD/ORBIS igual ao role de cliente PACS',
           'sec.loadTitle':'Carregar mapping', 'sec.mappingTitle': 'Mapeamento',
           'msg.loadFirst': 'Importe mapping.txt, cole roles externos ou informe o código de mapping do servidor para mostrar os papéis LDAP/ORBIS.',
           'copyFrom':'Copiar para este role de:',
@@ -527,7 +537,7 @@
           'btn.validate': 'Importar y preparar asignación',
           'sec.testTitle': 'Roles de autenticación externa','sec.dirtyTitle':'Importar dirty Keycloak',
           'btn.createTest': 'Iniciar mapeo','btn.dirtyImport':'Importar dirty Keycloak',
-          'btn.fillSample':'Insertar roles de ejemplo',
+          'btn.fillSample':'Insertar roles de ejemplo','label.autoMapExternalToIndividual':'Rol AD/ORBIS igual al rol de cliente PACS',
           'sec.loadTitle':'Cargar mapping', 'sec.mappingTitle': 'Mapeo',
           'msg.loadFirst': 'Primero importa mapping.txt, pega roles externos o introduce un código de mapping del servidor para mostrar los roles LDAP/ORBIS.',
           'copyFrom':'Copiar a este rol desde:',
@@ -655,6 +665,9 @@
       const customRolesInput = document.getElementById('customRolesInput');
       const addCustomRolesBtn = document.getElementById('addCustomRolesBtn');
       const customRolePool = document.getElementById('customRolePool');
+      const sbkRolesInput = document.getElementById('sbkRolesInput');
+      const addSbkRolesBtn = document.getElementById('addSbkRolesBtn');
+      const sbkRolePool = document.getElementById('sbkRolePool');
       const mappingCountryInput = document.getElementById('mappingCountryInput');
       const mappingPostalInput = document.getElementById('mappingPostalInput');
       const mappingCityInput = document.getElementById('mappingCityInput');
@@ -922,6 +935,7 @@
         if (customRolePool) {
           const existing = new Set(Array.from(customRolePool.querySelectorAll('.pill[data-role]')).map(p => (p.dataset.role||'').trim()));
           document.querySelectorAll('.bucket .pill[data-kind="role"][data-known="0"]').forEach((p) => {
+            if (p.classList && p.classList.contains('sbk-role')) return;
             const role = (p.dataset.role || '').trim();
             if (!role || existing.has(role)) return;
             const row = createPoolRoleItem(role, '0');
@@ -942,13 +956,38 @@
         const sel=document.querySelector(`.copy-from[data-target="${esc(target)}"]`); const from=sel?sel.value:''; if(!from) return;
         const srcBucket=document.querySelector(`.bucket[data-source="${esc(from)}"]`); const dstBucket=document.querySelector(`.bucket[data-source="${esc(target)}"]`); if(!srcBucket||!dstBucket) return;
         dstBucket.innerHTML=''; const items=[]; Array.from(srcBucket.querySelectorAll('.pill')).forEach(p=>{const role=p.dataset.role||''; const kind=p.dataset.kind||'persona'; const known=p.dataset.known||'1'; if(role && !items.find(x=>x.role===role && x.kind===kind)) items.push({role,kind,known});});
-        items.forEach(({role,kind,known})=>{ const el=document.createElement('div'); el.className='pill'+(known==='0'?' unknown':''); el.draggable=true; el.dataset.role=role; el.dataset.kind=kind; el.dataset.known=known; el.textContent=role; dstBucket.appendChild(el); });
+        items.forEach(({role,kind,known})=>{ const srcPill = Array.from(srcBucket.querySelectorAll('.pill')).find(p => (p.dataset.role||'')===role && (p.dataset.kind||'persona')===kind); const isSbk = !!(srcPill && srcPill.classList.contains('sbk-role')); const el=document.createElement('div'); el.className='pill'+(known==='0'?' unknown':'')+(isSbk?' sbk-role':''); el.draggable=true; el.dataset.role=role; el.dataset.kind=kind; el.dataset.known=known; el.textContent=role; dstBucket.appendChild(el); });
         markUnknownInBuckets();
       };
       document.addEventListener('click', (e)=>{
         const btn=e.target.closest('.copy-btn');
-        if(!btn) return;
-        copyAssignments(btn.dataset.target||'');
+        if(btn){
+          copyAssignments(btn.dataset.target||'');
+          return;
+        }
+        const sbkBtn = e.target.closest('.all-sbk-btn');
+        if(!sbkBtn) return;
+        const target = String(sbkBtn.dataset.target || '').trim();
+        if (!target) return;
+        const dstBucket = document.querySelector(`.bucket[data-source="${esc(target)}"]`);
+        if (!dstBucket) return;
+        const sbkPills = Array.from((sbkRolePool && sbkRolePool.querySelectorAll('.pill[data-role]')) || []);
+        if (!sbkPills.length) return;
+        const existing = new Set(Array.from(dstBucket.querySelectorAll('.pill[data-kind="role"][data-role]')).map((p) => (p.dataset.role||'').trim()));
+        sbkPills.forEach((p) => {
+          const role = String(p.dataset.role || '').trim();
+          if (!role || existing.has(role)) return;
+          const el = document.createElement('div');
+          el.className = 'pill unknown sbk-role';
+          el.draggable = true;
+          el.dataset.role = role;
+          el.dataset.kind = 'role';
+          el.dataset.known = '0';
+          el.textContent = role;
+          dstBucket.appendChild(el);
+          existing.add(role);
+        });
+        markUnknownInBuckets();
       });
 
       const sourceWrap = document.getElementById('sourceBucketsWrap');
@@ -992,6 +1031,7 @@
             <label style="font-size:12px; color:#5f7185;" data-i18n="copyFrom">Copy to this role from:</label>
             <select class="copy-from" data-target="${safe}"><option value="" data-i18n="selectRole">-- select role --</option></select>
             <button type="button" class="copy-btn" data-target="${safe}" data-i18n="copyBtn">Copy</button>
+            <button type="button" class="all-sbk-btn" data-target="${safe}" data-i18n="allSbkRolesBtn">${tKey('allSbkRolesBtn')}</button>
           </div>
           <div class="dropzone bucket" data-source="${safe}"></div>`;
         sourceWrap.appendChild(row);
@@ -1101,7 +1141,8 @@
             const exists = Array.from(bucket.querySelectorAll('.pill')).some((p) => (p.dataset.role||'') === role && (p.dataset.kind||'persona') === kind);
             if (exists) return;
             const el = document.createElement('div');
-            el.className = 'pill' + (knownFlag === '0' ? ' unknown' : '');
+            const isSbk = dragged.classList && dragged.classList.contains('sbk-role');
+            el.className = 'pill' + (knownFlag === '0' ? ' unknown' : '') + (isSbk ? ' sbk-role' : '');
             el.draggable = true;
             el.dataset.role = role;
             el.dataset.kind = kind;
@@ -1178,6 +1219,22 @@
         }
       });
 
+      const SBK_STORAGE_KEY = 'rolemapper.sbkRoles';
+      const getStoredSbkRoles = () => {
+        try {
+          const raw = localStorage.getItem(SBK_STORAGE_KEY);
+          const arr = raw ? JSON.parse(raw) : [];
+          return Array.isArray(arr) ? arr.map(x => String(x||'').trim()).filter(Boolean) : [];
+        } catch (_) { return []; }
+      };
+      const setStoredSbkRoles = () => {
+        if (!sbkRolePool) return;
+        try {
+          const roles = Array.from(sbkRolePool.querySelectorAll('.pill[data-role]')).map(p => (p.dataset.role||'').trim()).filter(Boolean);
+          localStorage.setItem(SBK_STORAGE_KEY, JSON.stringify(Array.from(new Set(roles)).sort()));
+        } catch (_) {}
+      };
+
       const addCustomRoles = () => {
         const raw = (customRolesInput && customRolesInput.value || '').trim();
         if (!raw || !customRolePool) return;
@@ -1198,14 +1255,55 @@
         });
         customRolesInput.value = '';
       };
+      const addSbkRoles = () => {
+        const raw = (sbkRolesInput && sbkRolesInput.value || '').trim();
+        if (!raw || !sbkRolePool) return;
+        const chunks = raw.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean);
+        const existing = new Set(Array.from(sbkRolePool.querySelectorAll('.pill[data-role]')).map(p => (p.dataset.role||'').trim()));
+        chunks.forEach((r) => {
+          const safe = r.replace(/\u0000/g,'').replace(/[<>]/g, m => m === '<' ? '‹' : '›').slice(0,256);
+          if (!safe || existing.has(safe)) return;
+          const el = document.createElement('div');
+          el.className = 'pill unknown sbk-role';
+          el.draggable = true;
+          el.dataset.role = safe;
+          el.dataset.kind = 'role';
+          el.dataset.known = '0';
+          el.textContent = safe;
+          sbkRolePool.appendChild(el);
+          existing.add(safe);
+        });
+        sbkRolesInput.value = '';
+        setStoredSbkRoles();
+      };
       if (addCustomRolesBtn) addCustomRolesBtn.addEventListener('click', addCustomRoles);
       if (customRolesInput) customRolesInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); addCustomRoles(); }});
+      if (addSbkRolesBtn) addSbkRolesBtn.addEventListener('click', addSbkRoles);
+      if (sbkRolesInput) sbkRolesInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); addSbkRoles(); }});
 
       refreshCopySelects();
       applySourceRoleFilter();
 
       const form=document.getElementById('assignForm');
       markUnknownInBuckets();
+      (() => {
+        const stored = new Set(getStoredSbkRoles());
+        if (!stored.size) return;
+        stored.forEach((role) => {
+          document.querySelectorAll(`.bucket .pill[data-kind="role"][data-role="${esc(role)}"]`).forEach((p) => p.classList.add('sbk-role'));
+          if (customRolePool) customRolePool.querySelectorAll(`.pill[data-role="${esc(role)}"]`).forEach((p) => p.remove());
+          if (sbkRolePool && !sbkRolePool.querySelector(`.pill[data-role="${esc(role)}"]`)) {
+            const el = document.createElement('div');
+            el.className = 'pill unknown sbk-role';
+            el.draggable = true;
+            el.dataset.role = role;
+            el.dataset.kind = 'role';
+            el.dataset.known = '0';
+            el.textContent = role;
+            sbkRolePool.appendChild(el);
+          }
+        });
+      })();
 
       const collectCurrentAssignments = () => {
         const data = {};

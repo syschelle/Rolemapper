@@ -66,7 +66,40 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.9 (current)
+## v1.0.12 (current)
+- Anfrage: Nach neuem Laden des Mappings sollen SBK-Rollen nicht wie „Individuelle Rollen“ aussehen.
+- Antwort: Behoben. SBK-Rollen werden jetzt im Browser persistent gemerkt und beim Laden wieder als SBK (gelblich) markiert.
+- Änderungen:
+  - `index.html`:
+    - LocalStorage-Merker eingeführt (`rolemapper.sbkRoles`).
+    - Beim Hinzufügen von SBK-Rollen wird die Liste persistent gespeichert.
+    - Nach `markUnknownInBuckets()` werden gespeicherte SBK-Rollen wiederhergestellt:
+      - in Buckets als `sbk-role` markiert,
+      - aus `Individuelle Rollen` entfernt,
+      - in den SBK-Pool eingesetzt (falls fehlend).
+
+## v1.0.11
+- Anfrage: Pro AD/ORBIS-Rolle einen Button „alle SBK Rollen“, der alle aktuellen SBK-Rollen in genau diese gewählte Rolle übernimmt.
+- Antwort: Umgesetzt. Neben dem Copy-Button gibt es jetzt „alle SBK Rollen“. Der Button fügt alle aktuellen SBK-Rollen dedupliziert in den gewählten AD/ORBIS-Bucket ein.
+- Änderungen:
+  - `index.html`:
+    - Neuer Button `.all-sbk-btn` pro AD/ORBIS-Rolle (statisch + dynamisch erzeugte Rollen).
+    - Click-Handler ergänzt: liest Rollen aus `sbkRolePool` und fügt sie in den Ziel-Bucket ein.
+    - Deduplizierung aktiv (bereits vorhandene Rollen werden nicht doppelt angelegt).
+    - SBK-Styling bleibt erhalten (`sbk-role`).
+    - i18n-Key ergänzt: `allSbkRolesBtn`.
+
+## v1.0.10
+- Anfrage: Unter „Individuelle Rollen“ soll es denselben Block als „SBK Rollen“ geben, in gelblicher Darstellung.
+- Antwort: Umgesetzt und nachgebessert. SBK-Rollen sind jetzt eigener Block inkl. eigener Eingabe/Pool und bleiben auch bei Copy/Bulk-Assign gelblich markiert.
+- Änderungen:
+  - `index.html`:
+    - Neuer Bereich `SBK Rollen` (Textarea + Add-Button + eigener Pool `pool-sbk`).
+    - Neues Styling: `.pill.sbk-role` (gelbliche Darstellung) sowie `.pill.sbk-role.unknown`.
+    - JS ergänzt: `addSbkRoles()` für Erfassung per Zeile/Komma/Semikolon.
+    - Copy/Bulk-Assign übertragen jetzt das `sbk-role`-Styling korrekt mit.
+
+## v1.0.9
 - Anfrage: In der History wird der Benutzer aus dem Cookie nicht angezeigt.
 - Antwort: Behoben. History-Einträge verwenden jetzt bevorzugt die aufgelöste Editor-Identität (inkl. Cookie-/SSO-/manuellem Namen + Rolle) statt nur generischer Werte wie `admin`/`user`.
 - Änderungen:
