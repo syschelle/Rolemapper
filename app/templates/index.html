@@ -217,6 +217,7 @@
           <input type="hidden" name="mapping_client_ts" id="mapping_client_ts" value="">
           <input type="hidden" name="assignments_json" id="assignments_json" value="">
           <input type="hidden" name="sbk_roles_json" id="sbk_roles_json" value="[]">
+          <input type="hidden" name="custom_roles_json" id="custom_roles_json" value="[]">
 
           <div class="mapping-layout">
             <div class="card mapping-left">
@@ -251,7 +252,7 @@
                 <textarea id="customRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" data-i18n-placeholder="customRolesPh" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
                 <button type="button" id="addCustomRolesBtn" data-i18n="addCustomRoles">Rollen hinzufügen</button>
                 <input id="customRolesSearch" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
-                <div id="customRolePool" class="dropzone" data-zone="pool-custom" style="margin-top:8px;"></div>
+                <div id="customRolePool" class="dropzone" data-zone="pool-custom" style="margin-top:8px;">{% for r in (mapping_plus_custom_roles|default([])) %}<div class="pill unknown" draggable="true" data-role="{{ r }}" data-kind="role" data-known="0">{{ r }}</div>{% endfor %}</div>
               </div>
 
               <br>
@@ -1395,6 +1396,11 @@
         if (sbkEl && sbkRolePool) {
           const sbkRoles = Array.from(sbkRolePool.querySelectorAll('.pill[data-role]')).map((p) => String(p.dataset.role||'').trim()).filter(Boolean);
           sbkEl.value = JSON.stringify(Array.from(new Set(sbkRoles)).sort());
+        }
+        const customEl = document.getElementById('custom_roles_json');
+        if (customEl && customRolePool) {
+          const customRoles = Array.from(customRolePool.querySelectorAll('.pill[data-role]')).map((p) => String(p.dataset.role||'').trim()).filter(Boolean);
+          customEl.value = JSON.stringify(Array.from(new Set(customRoles)).sort());
         }
 
       });

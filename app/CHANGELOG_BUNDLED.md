@@ -66,7 +66,19 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.20 (current)
+## v1.0.21 (current)
+- Anfrage: SBK-Rollen und Individuelle Rollen pro Mapping in der DB speichern, auch wenn sie noch keiner SOURCE-Rolle zugeordnet sind.
+- Antwort: Umgesetzt. Beide Rollenpools werden jetzt mapping-spezifisch persistiert und beim Laden wiederhergestellt.
+- Änderungen:
+  - `app.py`:
+    - DB-Migration: neue Spalte `custom_roles_json` in `mapping_records`.
+    - `save_mapping_plus(...)` speichert nun `sbk_roles` und `custom_roles` pro Mapping-Code.
+    - `load_mapping_plus_bundle(...)` liefert `sbk_roles` und `custom_roles` im Meta-Objekt.
+  - `index.html`:
+    - Hidden-Feld `custom_roles_json` ergänzt (Submit-Payload).
+    - Individuelle Rollen werden aus `mapping_plus_custom_roles` vorbefüllt.
+
+## v1.0.20
 - Anfrage: Bereits als „Individuelle Rollen“ geführte Rollen sollen beim Kopieren/Hinzufügen zu SBK wieder korrekt als SBK (gelb) klassifiziert werden.
 - Antwort: Umgesetzt. Beim Hinzufügen zu SBK werden Rollen reklassifiziert.
 - Änderungen:
