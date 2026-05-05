@@ -66,7 +66,26 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.15 (current)
+## v1.0.17 (current)
+- Anfrage: Anleitung noch detailreicher, klar strukturiert und mit kleinen Möglichkeiten erweitern.
+- Antwort: Umgesetzt. Guide wurde zu einer ausführlichen, praxisnahen Schritt-für-Schritt-Anleitung ausgebaut.
+- Änderungen:
+  - `guide.html`:
+    - Schnellstart auf 5 Schritte fokussiert.
+    - Neue Abschnitte: Bereiche der Hauptseite, typische Workflows, kurzes Troubleshooting.
+    - Tipps erweitert (Bulk-Zuweisung, SBK-Massenpflege, Rollenpflege/Export, Anzeigehinweise).
+
+## v1.0.16
+- Anfrage: Anleitung der App analysieren und klar strukturiert aktualisieren, inklusive kleiner Möglichkeiten.
+- Antwort: Umgesetzt. Guide wurde inhaltlich erweitert und praxisnah strukturiert.
+- Änderungen:
+  - `guide.html`:
+    - Hauptablauf neu strukturiert (Laden → Vorbereiten → Zuweisen → Speichern/Generieren → Weiterbearbeiten).
+    - Hinweise auf aktuelle Funktionen ergänzt: SBK-Rollen, „alle SBK Rollen“, Filter, Bulk-Zuweisung, Rollenliste/Export.
+    - Tipps-Bereich zu „Tipps & kleine Möglichkeiten“ ausgebaut.
+    - DE-i18n-Texte entsprechend aktualisiert.
+
+## v1.0.15
 - Anfrage: Beim Zuklappen von „Individuelle Rollen“ sollen SBK-Rollen nicht mit zugeklappt werden.
 - Antwort: Behoben. SBK-Rollen sind jetzt eigener, separat klappbarer Bereich.
 - Änderungen:
