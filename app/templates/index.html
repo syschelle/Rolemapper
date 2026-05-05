@@ -249,6 +249,7 @@
               <div id="customSection">
                 <textarea id="customRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" data-i18n-placeholder="customRolesPh" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
                 <button type="button" id="addCustomRolesBtn" data-i18n="addCustomRoles">Rollen hinzufügen</button>
+                <input id="customRolesSearch" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
                 <div id="customRolePool" class="dropzone" data-zone="pool-custom" style="margin-top:8px;"></div>
 
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;">
@@ -256,6 +257,7 @@
                 </div>
                 <textarea id="sbkRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
                 <button type="button" id="addSbkRolesBtn">SBK Rollen hinzufügen</button>
+                <input id="sbkRolesSearch" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
                 <div id="sbkRolePool" class="dropzone" data-zone="pool-sbk" style="margin-top:8px;"></div>
               </div>
             </div>
@@ -663,8 +665,10 @@
       const rolesSection = document.getElementById('rolesSection');
       const customSection = document.getElementById('customSection');
       const customRolesInput = document.getElementById('customRolesInput');
+      const customRolesSearch = document.getElementById('customRolesSearch');
       const addCustomRolesBtn = document.getElementById('addCustomRolesBtn');
       const customRolePool = document.getElementById('customRolePool');
+      const sbkRolesSearch = document.getElementById('sbkRolesSearch');
       const sbkRolesInput = document.getElementById('sbkRolesInput');
       const addSbkRolesBtn = document.getElementById('addSbkRolesBtn');
       const sbkRolePool = document.getElementById('sbkRolePool');
@@ -879,6 +883,24 @@
             const t = String(pill.dataset.role || pill.textContent || '').toLowerCase();
             const show = (!q || t.includes(q));
             pill.style.display = show ? '' : 'none';
+          });
+        });
+      }
+      if (customRolesSearch) {
+        customRolesSearch.addEventListener('input', () => {
+          const q = String(customRolesSearch.value || '').trim().toLowerCase();
+          document.querySelectorAll('#customRolePool .pill').forEach((pill) => {
+            const t = String(pill.dataset.role || pill.textContent || '').toLowerCase();
+            pill.style.display = (!q || t.includes(q)) ? '' : 'none';
+          });
+        });
+      }
+      if (sbkRolesSearch) {
+        sbkRolesSearch.addEventListener('input', () => {
+          const q = String(sbkRolesSearch.value || '').trim().toLowerCase();
+          document.querySelectorAll('#sbkRolePool .pill').forEach((pill) => {
+            const t = String(pill.dataset.role || pill.textContent || '').toLowerCase();
+            pill.style.display = (!q || t.includes(q)) ? '' : 'none';
           });
         });
       }

@@ -66,7 +66,23 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.12 (current)
+## v1.0.14 (current)
+- Anfrage: Filterfeld in „Individuelle Rollen“ und „SBK Rollen“ soll jeweils nach dem Hinzufügen-Button stehen.
+- Antwort: Umgestellt. Die Filter-Inputs erscheinen jetzt direkt nach „Rollen hinzufügen“ bzw. „SBK Rollen hinzufügen“.
+- Änderungen:
+  - `index.html`:
+    - Reihenfolge in beiden Blöcken angepasst: Eingabe → Hinzufügen-Button → Filterfeld → Rollen-Pool.
+
+## v1.0.13
+- Anfrage: In „Individuelle Rollen“ und „SBK Rollen“ eine Filterfunktion wie bei Personas/DU-Rollen ergänzen.
+- Antwort: Umgesetzt. Beide Bereiche haben jetzt jeweils ein Suchfeld zum Live-Filtern der Rollen.
+- Änderungen:
+  - `index.html`:
+    - Neues Suchfeld `#customRolesSearch` für „Individuelle Rollen“.
+    - Neues Suchfeld `#sbkRolesSearch` für „SBK Rollen“.
+    - Live-Filter-Handler ergänzt (case-insensitive, analog zu Personas/DU-Rollen).
+
+## v1.0.12
 - Anfrage: Nach neuem Laden des Mappings sollen SBK-Rollen nicht wie „Individuelle Rollen“ aussehen.
 - Antwort: Behoben. SBK-Rollen werden jetzt im Browser persistent gemerkt und beim Laden wieder als SBK (gelblich) markiert.
 - Änderungen:
