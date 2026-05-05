@@ -66,7 +66,28 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.18 (current)
+## v1.0.20 (current)
+- Anfrage: Bereits als „Individuelle Rollen“ geführte Rollen sollen beim Kopieren/Hinzufügen zu SBK wieder korrekt als SBK (gelb) klassifiziert werden.
+- Antwort: Umgesetzt. Beim Hinzufügen zu SBK werden Rollen reklassifiziert.
+- Änderungen:
+  - `index.html`:
+    - `addSbkRoles()` entfernt gleichnamige Rollen aus „Individuelle Rollen“.
+    - Bereits zugewiesene Bucket-Rollen mit gleichem Namen erhalten automatisch `sbk-role` (gelbe Darstellung).
+
+## v1.0.19
+- Anfrage: SBK-Zuordnungen sollen für Anwender zuverlässig erhalten bleiben und nicht von LocalStorage abhängen.
+- Antwort: Umgesetzt. SBK-Rollen werden jetzt serverseitig in der Mapping-Datenbank gespeichert und beim Laden wiederhergestellt.
+- Änderungen:
+  - `app.py`:
+    - DB-Migration: neue Spalte `sbk_roles_json` in `mapping_records`.
+    - `save_mapping_plus(...)` speichert SBK-Rollen persistiert.
+    - `load_mapping_plus_bundle(...)` liefert `sbk_roles` in den geladenen Metadaten zurück.
+    - Main-Flow übergibt SBK-Rollen beim Speichern/Aktualisieren und lädt sie beim Mapping-Laden wieder ein.
+  - `index.html`:
+    - Hidden-Field `sbk_roles_json` ergänzt und beim Submit mit den aktuellen SBK-Rollen befüllt.
+    - SBK-Pool wird beim Laden aus `mapping_plus_sbk_roles` vorbefüllt.
+
+## v1.0.18
 - Anfrage: Variante 1 — SBK-Rollen sollen bei „Neu beginnen“ zurückgesetzt werden.
 - Antwort: Umgesetzt. Beim Klick auf „Neu beginnen“ wird der SBK-LocalStorage geleert, danach startet die Seite ohne alte SBK-Rollen.
 - Änderungen:

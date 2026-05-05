@@ -83,7 +83,7 @@ DEFAULT_PERSONAS = [
 
 app = Flask(__name__)
 app.secret_key = "rolemapper-local-dev"
-APP_VERSION = "1.0.18"
+APP_VERSION = "1.0.20"
 SUPPORTED_LANGS = ["de", "en", "it", "fr", "pt", "es"]
 
 
@@ -113,6 +113,9 @@ def _init_mapping_db() -> None:
               deleted INTEGER NOT NULL DEFAULT 0
             )
             """
+        )
+        conn.execute(
+            "ALTER TABLE mapping_records ADD COLUMN IF NOT EXISTS sbk_roles_json TEXT NOT NULL DEFAULT '[]'"
         )
         conn.execute(
             """
@@ -1368,6 +1371,7 @@ def save_mapping_plus(
     customer: str = "",
     client_ts: str = "",
     source_roles: List[str] | None = None,
+    sbk_roles: List[str] | None = None,
 ) -> None:
     safe_code = re.sub(r"[^A-Z0-9]", "", (code or "").upper())[:20]
     if not safe_code:
@@ -1392,6 +1396,7 @@ def save_mapping_plus(
     if not created_at_client:
         created_at_client = client_val
     clean_source_roles = [sanitize_plain_text(r) for r in (source_roles or []) if sanitize_plain_text(r)]
+    clean_sbk_roles = [sanitize_plain_text(r) for r in (sbk_roles or []) if sanitize_plain_text(r)]
     clean_lines = [str(x) for x in (lines or [])]
     meta_obj = {
         "code": safe_code,
@@ -1407,6 +1412,7 @@ def save_mapping_plus(
         "updated_at_client": client_val,
         "line_count": len(clean_lines),
         "source_roles": clean_source_roles,
+        "sbk_roles": clean_sbk_roles,
     }
 
     with _db_connect() as conn:
@@ -1415,8 +1421,8 @@ def save_mapping_plus(
             INSERT INTO mapping_records (
               code, country, postal_code, city, customer_no, site, customer,
               created_at, created_at_client, updated_at, updated_at_client,
-              line_count, source_roles_json, mapping_lines_text, deleted
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
+              line_count, source_roles_json, sbk_roles_json, mapping_lines_text, deleted
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 0)
             ON CONFLICT(code) DO UPDATE SET
               country=excluded.country,
               postal_code=excluded.postal_code,
@@ -1428,6 +1434,7 @@ def save_mapping_plus(
               updated_at_client=excluded.updated_at_client,
               line_count=excluded.line_count,
               source_roles_json=excluded.source_roles_json,
+              sbk_roles_json=excluded.sbk_roles_json,
               mapping_lines_text=excluded.mapping_lines_text,
               deleted=0
             """,
@@ -1445,6 +1452,7 @@ def save_mapping_plus(
                 meta_obj["updated_at_client"],
                 meta_obj["line_count"],
                 json.dumps(clean_source_roles, ensure_ascii=False),
+                json.dumps(clean_sbk_roles, ensure_ascii=False),
                 "\n".join(clean_lines),
             ),
         )
@@ -1453,10 +1461,10 @@ def save_mapping_plus(
 def load_mapping_plus_bundle(code: str) -> Tuple[Dict[str, List[str]], Dict[str, str]]:
     safe_code = re.sub(r"[^A-Z0-9]", "", (code or "").upper())[:20]
     if not safe_code:
-        return {}, {"country": "", "postal_code": "", "city": "", "customer_no": "", "side": "", "customer": ""}
+        return {}, {"country": "", "postal_code": "", "city": "", "customer_no": "", "side": "", "customer": "", "sbk_roles": []}
     _init_mapping_db()
     mapping: Dict[str, List[str]] = {}
-    meta_out = {"country": "", "postal_code": "", "city": "", "customer_no": "", "side": "", "customer": ""}
+    meta_out = {"country": "", "postal_code": "", "city": "", "customer_no": "", "side": "", "customer": "", "sbk_roles": []}
     meta: Dict[str, object] = {}
     with _db_connect() as conn:
         row = conn.execute(
@@ -1477,11 +1485,20 @@ def load_mapping_plus_bundle(code: str) -> Tuple[Dict[str, List[str]], Dict[str,
     meta_out["customer"] = sanitize_plain_text(row["customer"] or "")
     meta = {
         "source_roles": [],
+        "sbk_roles": [],
     }
     try:
         meta["source_roles"] = json.loads(str(row["source_roles_json"] or "[]"))
     except Exception:
         meta["source_roles"] = []
+    try:
+        meta["sbk_roles"] = json.loads(str(row.get("sbk_roles_json") or "[]"))
+    except Exception:
+        meta["sbk_roles"] = []
+
+    raw_sbk = meta.get("sbk_roles", []) if isinstance(meta, dict) else []
+    if isinstance(raw_sbk, list):
+        meta_out["sbk_roles"] = [sanitize_plain_text(r) for r in raw_sbk if sanitize_plain_text(r)]
 
     # Keep source roles in memory even when they have no target mapping lines.
     # This preserves external auth roles in DB/UI while still exporting only mapped lines.
@@ -1774,6 +1791,7 @@ def index():
     mapping_plus_side = ""
     mapping_plus_customer = ""
     mapping_plus_code = ""
+    mapping_plus_sbk_roles: List[str] = []
     mapping_loaded_from_server = False
     unmapped_warning_roles: List[str] = []
     added_source_roles: List[str] = []
@@ -1824,6 +1842,7 @@ def index():
                 mapping_plus_customer_no = loaded_meta.get("customer_no", "") or ""
                 mapping_plus_side = loaded_meta.get("side", "") or ""
                 mapping_plus_customer = loaded_meta.get("customer", "") or ""
+                mapping_plus_sbk_roles = loaded_meta.get("sbk_roles", []) or []
                 flash(f"Mapping geladen für Code: {mapping_plus_code}")
             else:
                 flash("Kein gespeichertes Mapping für diesen Code gefunden.")
@@ -1906,6 +1925,7 @@ def index():
         mapping_plus_customer = sanitize_plain_text(request.form.get("mapping_plus_customer", ""))
         mapping_plus_code = sanitize_plain_text(request.form.get("mapping_plus_code", ""))
         mapping_client_ts = sanitize_plain_text(request.form.get("mapping_client_ts", ""))
+        sbk_roles_json = request.form.get("sbk_roles_json", "[]")
         mapping_loaded_from_server = (request.form.get("mapping_loaded_from_server", "0") == "1")
         active_server_code = re.sub(r"[^A-Z0-9]", "", (mapping_plus_code or "").upper())[:20]
         existing_source_roles = [sanitize_plain_text(x) for x in request.form.getlist("existing_source_roles") if sanitize_plain_text(x)]
@@ -1925,6 +1945,7 @@ def index():
                 mapping_plus_customer_no = fallback_meta.get("customer_no", "") or mapping_plus_customer_no
                 mapping_plus_side = fallback_meta.get("side", "") or mapping_plus_side
                 mapping_plus_customer = fallback_meta.get("customer", "") or mapping_plus_customer
+                mapping_plus_sbk_roles = fallback_meta.get("sbk_roles", []) or mapping_plus_sbk_roles
 
         # Customer metadata can be edited by users on the main mapping page.
 
@@ -1971,6 +1992,7 @@ def index():
                     mapping_plus_customer_no = loaded_meta.get("customer_no", "") or mapping_plus_customer_no
                     mapping_plus_side = loaded_meta.get("side", "") or mapping_plus_side
                     mapping_plus_customer = loaded_meta.get("customer", "") or mapping_plus_customer
+                    mapping_plus_sbk_roles = loaded_meta.get("sbk_roles", []) or mapping_plus_sbk_roles
                     if not seed_mapping and not mapping_record_exists(safe_code):
                         flash("Kein gespeichertes Mapping für diesen Code gefunden.")
                     else:
@@ -2219,6 +2241,11 @@ def index():
                     flash(t(ui_lang, "assignment_json_bad"))
 
             lines = generate_from_persona_assignments(source_roles, selected_personas, personas, permission_mode, selected_roles)
+            try:
+                parsed_sbk = json.loads(sbk_roles_json) if str(sbk_roles_json or "").strip() else []
+            except Exception:
+                parsed_sbk = []
+            sbk_roles_list = [sanitize_plain_text(x) for x in (parsed_sbk if isinstance(parsed_sbk, list) else []) if sanitize_plain_text(x)]
             submit_mode = (request.form.get("submit_mode", "generate_txt") or "generate_txt").strip().lower()
 
             missing_meta = not all([
@@ -2234,7 +2261,7 @@ def index():
                     flash(t(ui_lang, "metaRequired"))
                 else:
                     mapping_plus_code = build_mapping_code()
-                    save_mapping_plus(mapping_plus_code, lines, mapping_plus_country, mapping_plus_postal_code, mapping_plus_city, mapping_plus_customer_no, mapping_plus_side, mapping_plus_customer, mapping_client_ts, source_roles)
+                    save_mapping_plus(mapping_plus_code, lines, mapping_plus_country, mapping_plus_postal_code, mapping_plus_city, mapping_plus_customer_no, mapping_plus_side, mapping_plus_customer, mapping_client_ts, source_roles, sbk_roles_list)
                     if active_edit_code and active_edit_code != mapping_plus_code:
                         _release_mapping_lock(active_edit_code, editor_id)
                     _acquire_mapping_lock(mapping_plus_code, editor_id, editor_label)
@@ -2260,7 +2287,7 @@ def index():
                         flash(f"Mapping {existing_code} ist aktuell gesperrt ({holder}).")
                     else:
                         session["editing_mapping_code"] = existing_code
-                        save_mapping_plus(existing_code, lines, mapping_plus_country, mapping_plus_postal_code, mapping_plus_city, mapping_plus_customer_no, mapping_plus_side, mapping_plus_customer, mapping_client_ts, source_roles)
+                        save_mapping_plus(existing_code, lines, mapping_plus_country, mapping_plus_postal_code, mapping_plus_city, mapping_plus_customer_no, mapping_plus_side, mapping_plus_customer, mapping_client_ts, source_roles, sbk_roles_list)
                         mapping_plus_code = existing_code
 
                         # Reload just-saved server mapping so the main page reflects the persisted state.
@@ -2277,6 +2304,7 @@ def index():
                             mapping_plus_customer_no = reloaded_meta.get("customer_no", "") or mapping_plus_customer_no
                             mapping_plus_side = reloaded_meta.get("side", "") or mapping_plus_side
                             mapping_plus_customer = reloaded_meta.get("customer", "") or mapping_plus_customer
+                            mapping_plus_sbk_roles = reloaded_meta.get("sbk_roles", []) or mapping_plus_sbk_roles
 
                         flash(f"Mapping aktualisiert. Code: {mapping_plus_code}")
                         flash("Hinweis: Es gibt keine Änderungshistorie. Die vorherige Server-Version wurde überschrieben.")
@@ -2329,6 +2357,7 @@ def index():
         mapping_plus_side=mapping_plus_side,
         mapping_plus_customer=mapping_plus_customer,
         mapping_plus_code=mapping_plus_code,
+        mapping_plus_sbk_roles=mapping_plus_sbk_roles,
         mapping_loaded_from_server=mapping_loaded_from_server,
         unmapped_warning_roles=unmapped_warning_roles,
         unmapped_warning_header=unmapped_warning_header,

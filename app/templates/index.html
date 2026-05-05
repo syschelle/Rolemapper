@@ -216,6 +216,7 @@
           <input type="hidden" name="mapping_loaded_from_server" value="{{ '1' if mapping_loaded_from_server else '0' }}">
           <input type="hidden" name="mapping_client_ts" id="mapping_client_ts" value="">
           <input type="hidden" name="assignments_json" id="assignments_json" value="">
+          <input type="hidden" name="sbk_roles_json" id="sbk_roles_json" value="[]">
 
           <div class="mapping-layout">
             <div class="card mapping-left">
@@ -262,7 +263,7 @@
                 <textarea id="sbkRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
                 <button type="button" id="addSbkRolesBtn">SBK Rollen hinzufügen</button>
                 <input id="sbkRolesSearch" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
-                <div id="sbkRolePool" class="dropzone" data-zone="pool-sbk" style="margin-top:8px;"></div>
+                <div id="sbkRolePool" class="dropzone" data-zone="pool-sbk" style="margin-top:8px;">{% for r in (mapping_plus_sbk_roles|default([])) %}<div class="pill unknown sbk-role" draggable="true" data-role="{{ r }}" data-kind="role" data-known="0">{{ r }}</div>{% endfor %}</div>
               </div>
             </div>
             <div class="card mapping-right">
@@ -1308,6 +1309,10 @@
           el.textContent = safe;
           sbkRolePool.appendChild(el);
           existing.add(safe);
+          if (customRolePool) {
+            customRolePool.querySelectorAll(`.pill[data-role="${esc(safe)}"]`).forEach((p) => p.remove());
+          }
+          document.querySelectorAll(`.bucket .pill[data-kind="role"][data-role="${esc(safe)}"]`).forEach((p) => p.classList.add('sbk-role'));
         });
         sbkRolesInput.value = '';
         setStoredSbkRoles();
@@ -1386,6 +1391,11 @@
         const tsEl = document.getElementById('mapping_client_ts');
         if (tsEl) tsEl.value = new Date().toISOString();
         document.getElementById('assignments_json').value=JSON.stringify(collectCurrentAssignments());
+        const sbkEl = document.getElementById('sbk_roles_json');
+        if (sbkEl && sbkRolePool) {
+          const sbkRoles = Array.from(sbkRolePool.querySelectorAll('.pill[data-role]')).map((p) => String(p.dataset.role||'').trim()).filter(Boolean);
+          sbkEl.value = JSON.stringify(Array.from(new Set(sbkRoles)).sort());
+        }
 
       });
 
