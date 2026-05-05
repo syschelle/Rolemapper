@@ -652,6 +652,7 @@
       const freshStartBtn = document.getElementById('freshStartBtn');
       if (freshStartBtn) {
         freshStartBtn.addEventListener('click', () => {
+          try { localStorage.removeItem('rolemapper.sbkRoles'); } catch (_) {}
           const lang = (langSwitch && langSwitch.value) || initialLang || 'de';
           window.location.href = '/?lang=' + encodeURIComponent(lang);
         });

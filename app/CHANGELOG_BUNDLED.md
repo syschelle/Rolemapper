@@ -66,7 +66,14 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.17 (current)
+## v1.0.18 (current)
+- Anfrage: Variante 1 — SBK-Rollen sollen bei „Neu beginnen“ zurückgesetzt werden.
+- Antwort: Umgesetzt. Beim Klick auf „Neu beginnen“ wird der SBK-LocalStorage geleert, danach startet die Seite ohne alte SBK-Rollen.
+- Änderungen:
+  - `index.html`:
+    - In der `freshStartBtn`-Logik `localStorage.removeItem('rolemapper.sbkRoles')` ergänzt.
+
+## v1.0.17
 - Anfrage: Anleitung noch detailreicher, klar strukturiert und mit kleinen Möglichkeiten erweitern.
 - Antwort: Umgesetzt. Guide wurde zu einer ausführlichen, praxisnahen Schritt-für-Schritt-Anleitung ausgebaut.
 - Änderungen:
