@@ -251,10 +251,14 @@
                 <button type="button" id="addCustomRolesBtn" data-i18n="addCustomRoles">Rollen hinzufügen</button>
                 <input id="customRolesSearch" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
                 <div id="customRolePool" class="dropzone" data-zone="pool-custom" style="margin-top:8px;"></div>
+              </div>
 
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;">
-                  <strong>SBK Rollen</strong>
-                </div>
+              <br>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <strong>SBK Rollen</strong>
+                <button type="button" id="toggleSbkBtn" style="padding:4px 8px;font-size:12px;" title="SBK Rollen ein-/ausklappen">▾</button>
+              </div>
+              <div id="sbkSection">
                 <textarea id="sbkRolesInput" placeholder="Rollen per Zeile, Komma oder Semikolon einfügen" style="width:100%;min-height:70px;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;"></textarea>
                 <button type="button" id="addSbkRolesBtn">SBK Rollen hinzufügen</button>
                 <input id="sbkRolesSearch" type="text" placeholder="Rollen filtern..." data-i18n-placeholder="rolesFilterPh" style="width:100%;margin:8px 0;padding:8px;border:1px solid #cbd5e1;border-radius:8px;">
@@ -661,9 +665,11 @@
       const togglePersonaBtn = document.getElementById('togglePersonaBtn');
       const toggleRolesBtn = document.getElementById('toggleRolesBtn');
       const toggleCustomBtn = document.getElementById('toggleCustomBtn');
+      const toggleSbkBtn = document.getElementById('toggleSbkBtn');
       const personaSection = document.getElementById('personaSection');
       const rolesSection = document.getElementById('rolesSection');
       const customSection = document.getElementById('customSection');
+      const sbkSection = document.getElementById('sbkSection');
       const customRolesInput = document.getElementById('customRolesInput');
       const customRolesSearch = document.getElementById('customRolesSearch');
       const addCustomRolesBtn = document.getElementById('addCustomRolesBtn');
@@ -708,6 +714,13 @@
           const hidden = customSection.style.display === 'none';
           customSection.style.display = hidden ? '' : 'none';
           toggleCustomBtn.textContent = hidden ? '▾' : '▸';
+        });
+      }
+      if (toggleSbkBtn && sbkSection) {
+        toggleSbkBtn.addEventListener('click', () => {
+          const hidden = sbkSection.style.display === 'none';
+          sbkSection.style.display = hidden ? '' : 'none';
+          toggleSbkBtn.textContent = hidden ? '▾' : '▸';
         });
       }
       const syncCustomerPreview = () => {

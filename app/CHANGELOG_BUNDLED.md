@@ -66,7 +66,15 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.14 (current)
+## v1.0.15 (current)
+- Anfrage: Beim Zuklappen von „Individuelle Rollen“ sollen SBK-Rollen nicht mit zugeklappt werden.
+- Antwort: Behoben. SBK-Rollen sind jetzt eigener, separat klappbarer Bereich.
+- Änderungen:
+  - `index.html`:
+    - SBK-Bereich aus `customSection` herausgelöst in eigenes `#sbkSection`.
+    - Neuer Toggle-Button `#toggleSbkBtn` mit eigener Ein-/Ausklapp-Logik.
+
+## v1.0.14
 - Anfrage: Filterfeld in „Individuelle Rollen“ und „SBK Rollen“ soll jeweils nach dem Hinzufügen-Button stehen.
 - Antwort: Umgestellt. Die Filter-Inputs erscheinen jetzt direkt nach „Rollen hinzufügen“ bzw. „SBK Rollen hinzufügen“.
 - Änderungen:
