@@ -66,10 +66,20 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.23 (current)
-- Anfrage: Englische Anleitung soll ebenfalls zur Image-/Compose-Installation passen.
+## v1.0.24 (current)
 - Anfrage: Beim Laden eines Mappings sollen SBK-Rollen nicht als normale Berechtigungs-/individuelle Rollen erscheinen und ihre farbliche Kennzeichnung behalten.
-- Antwort: Nachgezogen und behoben. In-App-Guide und Deployment-Bundle-Anleitung enthalten jetzt englische Hinweise zur Installation aus dem veröffentlichten Docker-Image; außerdem werden serverseitig gespeicherte SBK-Rollen beim Mapping-Laden wieder korrekt gelb klassifiziert.
+- Antwort: Behoben. Serverseitig gespeicherte SBK-Rollen werden beim Mapping-Laden wieder korrekt gelb klassifiziert; alte browserseitige SBK-Merker überschreiben Server-Mappings nicht mehr.
+- Änderungen:
+  - `app.py`:
+    - `APP_VERSION` auf `1.0.24` erhöht.
+  - `index.html`:
+    - SBK-Rollenpool wird beim Laden als eigene Klassifikationsquelle berücksichtigt.
+    - Serverseitige SBK-Rollen haben Vorrang vor altem browserseitigem LocalStorage.
+    - Bereits zugewiesene SBK-Rollen werden aus „Individuelle Rollen“ entfernt und wieder als `sbk-role` markiert.
+
+## v1.0.23
+- Anfrage: Englische Anleitung soll ebenfalls zur Image-/Compose-Installation passen.
+- Antwort: Nachgezogen. In-App-Guide und Deployment-Bundle-Anleitung enthalten jetzt englische Hinweise zur Installation aus dem veröffentlichten Docker-Image.
 - Änderungen:
   - `app.py`:
     - `APP_VERSION` auf `1.0.23` erhöht.
@@ -79,10 +89,6 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - `guide.html`:
     - Abschnitt „Installation & Updates“ ergänzt.
     - Englische Texte für Image-Installation über `docker-compose.image.yml` und `ROLEMAPPER_IMAGE` ergänzt.
-  - `index.html`:
-    - SBK-Rollenpool wird beim Laden als eigene Klassifikationsquelle berücksichtigt.
-    - Serverseitige SBK-Rollen haben Vorrang vor altem browserseitigem LocalStorage.
-    - Bereits zugewiesene SBK-Rollen werden aus „Individuelle Rollen“ entfernt und wieder als `sbk-role` markiert.
 
 ## v1.0.22
 - Anfrage: Rolemapper soll als fertiges Docker-Image per Compose-YAML installierbar sein; GitHub Workflow soll das Image bauen.
