@@ -925,6 +925,7 @@
         personas: new Set(Array.from(document.querySelectorAll('#personaPool .pill[data-role]')).map(p => (p.dataset.role||'').trim()).filter(Boolean)),
         roles: new Set(Array.from(document.querySelectorAll('#rolePool .pill[data-role]')).map(p => (p.dataset.role||'').trim()).filter(Boolean)),
       });
+      const getSbkRoleSet = () => new Set(Array.from((sbkRolePool && sbkRolePool.querySelectorAll('.pill[data-role]')) || []).map(p => (p.dataset.role||'').trim()).filter(Boolean));
       const sanitizeRoleText = (raw) => String(raw || '').replace(/\u0000/g,'').replace(/[<>]/g, m => m === '<' ? '‹' : '›').trim().slice(0,256);
       const createPoolRoleItem = (role, known = '1') => {
         const safe = sanitizeRoleText(role);
@@ -937,6 +938,20 @@
         pill.dataset.known = known;
         pill.textContent = safe;
         return pill;
+      };
+      const classifySbkRoles = () => {
+        const sbkRoles = getSbkRoleSet();
+        if (!sbkRoles.size) return;
+        document.querySelectorAll('.bucket .pill[data-kind="role"][data-role]').forEach((p) => {
+          const role = (p.dataset.role || '').trim();
+          if (role && sbkRoles.has(role)) p.classList.add('sbk-role');
+        });
+        if (customRolePool) {
+          customRolePool.querySelectorAll('.pill[data-role]').forEach((p) => {
+            const role = (p.dataset.role || '').trim();
+            if (role && sbkRoles.has(role)) p.remove();
+          });
+        }
       };
       const ensurePoolRoleItem = (_pill, _zone) => {};
       const ensureBucketPillDeleteButtons = () => {
@@ -959,6 +974,7 @@
 
       const markUnknownInBuckets = () => {
         const known = getKnownSets();
+        classifySbkRoles();
         document.querySelectorAll('.bucket .pill[data-role]').forEach((p) => {
           const role = (p.dataset.role || '').trim();
           const kind = (p.dataset.kind || '').trim();
@@ -1329,7 +1345,18 @@
       const form=document.getElementById('assignForm');
       markUnknownInBuckets();
       (() => {
+        const serverMappingActive = {{ 'true' if mapping_plus_code else 'false' }};
+        const serverSbkRoles = getSbkRoleSet();
         const stored = new Set(getStoredSbkRoles());
+        if (serverSbkRoles.size) {
+          classifySbkRoles();
+          setStoredSbkRoles();
+          return;
+        }
+        if (serverMappingActive) {
+          setStoredSbkRoles();
+          return;
+        }
         if (!stored.size) return;
         stored.forEach((role) => {
           document.querySelectorAll(`.bucket .pill[data-kind="role"][data-role="${esc(role)}"]`).forEach((p) => p.classList.add('sbk-role'));
@@ -1345,6 +1372,7 @@
             sbkRolePool.appendChild(el);
           }
         });
+        classifySbkRoles();
       })();
 
       const collectCurrentAssignments = () => {
