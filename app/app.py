@@ -83,7 +83,7 @@ DEFAULT_PERSONAS = [
 
 app = Flask(__name__)
 app.secret_key = "rolemapper-local-dev"
-APP_VERSION = "1.0.21"
+APP_VERSION = "1.0.23"
 SUPPORTED_LANGS = ["de", "en", "it", "fr", "pt", "es"]
 
 
@@ -221,6 +221,11 @@ I18N_EDITOR_DEFAULTS: Dict[str, Dict[str, str]] = {
         "guide.t1": "Doppelklick auf einen Eintrag im Zielbereich entfernt ihn.",
         "guide.t2": "Die Sprache ist live umschaltbar; Personas/Rollen bleiben unverändert.",
         "guide.t3": "Wenn etwas fehlt: Seite mit Strg+F5 neu laden.",
+        "guide.deployTitle": "Installation & Updates",
+        "guide.deploy1": "Für lokale Entwicklung nutzt du docker compose up -d --build.",
+        "guide.deploy2": "Für Installation aus einem fertigen Image nutzt du docker-compose.image.yml und ROLEMAPPER_IMAGE.",
+        "guide.deploy3": "Das veröffentlichte Image liegt unter ghcr.io/syschelle/rolemapper.",
+        "guide.deploy4": "Nach Updates Container neu starten und /healthz prüfen.",
         "persona_names.title": "Persona-Liste bearbeiten", "persona_names.hint": "Personas A-Z sortiert. Bestehende Personas-Namen sind nicht editierbar, nur die Erklärung darf bearbeitet werden. Neue Zeile hinzufügen erlaubt neue Persona.", "persona_names.count": "Aktuelle Anzahl:", "persona_names.colPersona": "Persona", "persona_names.colDesc": "Erklärung", "persona_names.colAction": "Aktion", "persona_names.addRow": "+ Neue Zeile", "persona_names.delete": "Löschen", "persona_names.confirmDelete": "Zeile wirklich löschen?", "persona_names.searchPh": "Suchen...",
         "auth_config.title": "Konfiguration", "auth_config.status": "Status:", "auth_config.adminSet": "Admin gesetzt", "auth_config.i18nSet": "I18N gesetzt", "auth_config.yes": "ja", "auth_config.no": "nein", "auth_config.adminPw": "Admin-Passwort", "auth_config.newAdminPw": "Neues Admin-Passwort", "auth_config.confirmAdminPw": "Admin-Passwort bestätigen", "auth_config.i18nPw": "I18N-Passwort (nur Lokalisierung)", "auth_config.newI18nPw": "Neues I18N-Passwort", "auth_config.confirmI18nPw": "I18N-Passwort bestätigen", "auth_config.save": "Speichern", "auth_config.sampleRoles": "Beispiel AD/ORBIS Gruppen", "auth_config.sampleRolesHint": "Eine Rolle pro Zeile. Wird für den Button „Beispielrollen einfügen“ genutzt."
     },
@@ -232,6 +237,11 @@ I18N_EDITOR_DEFAULTS: Dict[str, Dict[str, str]] = {
         "guide.title": "Guide", "guide.h1": "How to use the main page", "guide.s1": "Load file: upload CSV or use test mode.", "guide.s2": "Auto prefill: existing mapping.txt / mapping-*.txt is considered.", "guide.s3": "Build mapping: drag personas onto LDAP/ORBIS roles.",
         "guide.s4": "Optional copy: use \"Copy from\" to duplicate mappings between roles.", "guide.s5": "Generate TXT: click button, download starts automatically.", "guide.s6": "Permission mode: set Auto/Force old/Force new in persona configuration.", "guide.s7": "External access: Use https://FQDN/api/edit-mapping/<Mappingcode> to load and edit a saved mapping directly.",
         "guide.tips": "Tips", "guide.t1": "Double-click an entry in target area to remove it.", "guide.t2": "Language switches live; personas/roles stay unchanged.", "guide.t3": "If something is missing: hard refresh with Ctrl+F5.",
+        "guide.deployTitle": "Installation & updates",
+        "guide.deploy1": "Use docker compose up -d --build for local development builds.",
+        "guide.deploy2": "Use docker-compose.image.yml and ROLEMAPPER_IMAGE to install from a published image.",
+        "guide.deploy3": "The published image is ghcr.io/syschelle/rolemapper.",
+        "guide.deploy4": "After updates, restart the containers and verify /healthz.",
         "persona_names.title": "Edit persona list", "persona_names.hint": "Personas sorted A-Z. Existing persona names are not editable; only the description may be edited. Adding a new row allows a new persona.", "persona_names.count": "Current count:", "persona_names.colPersona": "Persona", "persona_names.colDesc": "Description", "persona_names.colAction": "Action", "persona_names.addRow": "+ Add row", "persona_names.delete": "Delete", "persona_names.confirmDelete": "Really delete this row?", "persona_names.searchPh": "Search...",
         "auth_config.title": "Configuration", "auth_config.status": "Status:", "auth_config.adminSet": "Admin set", "auth_config.i18nSet": "I18N set", "auth_config.yes": "yes", "auth_config.no": "no", "auth_config.adminPw": "Admin password", "auth_config.newAdminPw": "New admin password", "auth_config.confirmAdminPw": "Confirm admin password", "auth_config.i18nPw": "I18N password (localization only)", "auth_config.newI18nPw": "New I18N password", "auth_config.confirmI18nPw": "Confirm I18N password", "auth_config.save": "Save", "auth_config.sampleRoles": "Sample AD/ORBIS groups", "auth_config.sampleRolesHint": "One role per line. Used by the \"Insert sample roles\" button."
     },
@@ -1694,6 +1704,12 @@ def logout_page():
     session.pop("login_lang", None)
     return redirect(url_for("index"))
 
+
+@app.route("/healthz")
+def healthz():
+    return jsonify({"ok": True, "version": APP_VERSION})
+
+
 @app.route("/config-auth", methods=["GET", "POST"])
 def config_auth():
     auth = load_auth_settings()
@@ -2777,6 +2793,8 @@ This bundle contains:
 - Program files (`app/`, `requirements.txt`, optional `README.md`)
 - `config/` (embedded defaults, roles/personas/settings)
 - `docker-compose.example.yaml`
+- `docker-compose.image.yml` (when available)
+- `.env.example` (when available)
 - `Dockerfile`
 - `DEPLOY_EN.md`
 - `config/auth_settings.json` (with initial admin password hash)
@@ -2811,23 +2829,53 @@ Common pitfall:
 - If `tls.certresolver` is missing, Traefik routes traffic but does not request/store a Let's Encrypt cert for this router.
 - The certresolver value must match your Traefik configuration name exactly (example only: `le`).
 
-## 3) Start
+## 3) Start from local build
 ```bash
 cd /opt/rolemapper
 docker compose -f docker-compose.example.yaml up -d --build
+```
+
+## 3a) Start from published Docker image
+If `docker-compose.image.yml` is present and the image has been published, use this mode for a simpler installation without a local build:
+
+```bash
+cd /opt/rolemapper
+cp .env.example .env
+# Edit .env and set POSTGRES_PASSWORD before first start.
+docker compose -f docker-compose.image.yml up -d
+```
+
+Default image:
+
+```text
+ghcr.io/syschelle/rolemapper:latest
+```
+
+For pinned deployments, set `ROLEMAPPER_IMAGE` in `.env`, for example:
+
+```text
+ROLEMAPPER_IMAGE=ghcr.io/syschelle/rolemapper:sha-<commit>
 ```
 
 ## 4) Verify
 ```bash
 docker compose -f docker-compose.example.yaml ps
 docker compose -f docker-compose.example.yaml logs -f
+curl -fsS http://127.0.0.1:5080/healthz
 ```
 Then open your configured HTTPS URL.
 
 ## 5) Updates
-When code changes:
+When code changes and you build locally:
 ```bash
 docker compose -f docker-compose.example.yaml up -d --build
+```
+
+When using a published image:
+```bash
+docker compose -f docker-compose.image.yml pull
+docker compose -f docker-compose.image.yml up -d
+curl -fsS http://127.0.0.1:5080/healthz
 ```
 
 Bundle generated from Rolemapper {APP_VERSION}.
@@ -2848,6 +2896,10 @@ Bundle generated from Rolemapper {APP_VERSION}.
         zf.writestr("DEPLOY_EN.md", guide)
         zf.writestr("config/auth_settings.json", json.dumps(initial_auth_settings, indent=2, ensure_ascii=False))
         zf.writestr("app/CHANGELOG_BUNDLED.md", bundled_changelog)
+        for extra_name in ["docker-compose.image.yml", ".env.example"]:
+            extra_path = PROJECT_DIR / extra_name
+            if extra_path.exists() and extra_path.is_file():
+                zf.write(extra_path, arcname=extra_name)
 
         # Program files (without Aufgabe)
         required_files = [

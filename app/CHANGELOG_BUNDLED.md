@@ -66,7 +66,45 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.21 (current)
+## v1.0.23 (current)
+- Anfrage: Englische Anleitung soll ebenfalls zur Image-/Compose-Installation passen.
+- Anfrage: Beim Laden eines Mappings sollen SBK-Rollen nicht als normale Berechtigungs-/individuelle Rollen erscheinen und ihre farbliche Kennzeichnung behalten.
+- Antwort: Nachgezogen und behoben. In-App-Guide und Deployment-Bundle-Anleitung enthalten jetzt englische Hinweise zur Installation aus dem veröffentlichten Docker-Image; außerdem werden serverseitig gespeicherte SBK-Rollen beim Mapping-Laden wieder korrekt gelb klassifiziert.
+- Änderungen:
+  - `app.py`:
+    - `APP_VERSION` auf `1.0.23` erhöht.
+    - Englische und deutsche i18n-Defaults um Installations-/Update-Hinweise ergänzt.
+    - `DEPLOY_EN.md` im Deployment-Bundle um Image-Installation, pinned Tags und Healthcheck-Prüfung erweitert.
+    - Deployment-Bundle nimmt `docker-compose.image.yml` und `.env.example` mit auf, wenn vorhanden.
+  - `guide.html`:
+    - Abschnitt „Installation & Updates“ ergänzt.
+    - Englische Texte für Image-Installation über `docker-compose.image.yml` und `ROLEMAPPER_IMAGE` ergänzt.
+  - `index.html`:
+    - SBK-Rollenpool wird beim Laden als eigene Klassifikationsquelle berücksichtigt.
+    - Serverseitige SBK-Rollen haben Vorrang vor altem browserseitigem LocalStorage.
+    - Bereits zugewiesene SBK-Rollen werden aus „Individuelle Rollen“ entfernt und wieder als `sbk-role` markiert.
+
+## v1.0.22
+- Anfrage: Rolemapper soll als fertiges Docker-Image per Compose-YAML installierbar sein; GitHub Workflow soll das Image bauen.
+- Antwort: Umgesetzt. Es gibt jetzt einen GHCR-Build-Workflow, eine image-basierte Compose-Datei und Healthchecks für Test/Deploy.
+- Änderungen:
+  - `app.py`:
+    - `APP_VERSION` auf `1.0.22` erhöht.
+    - Neuer Health-Endpunkt `/healthz` ergänzt.
+  - `Dockerfile`:
+    - Container-Healthcheck gegen `/healthz` ergänzt.
+  - `.github/workflows/docker-image.yml`:
+    - GitHub Actions Workflow zum Bauen und Veröffentlichen des Docker-Images nach `ghcr.io/syschelle/rolemapper` ergänzt.
+  - `docker-compose.image.yml`:
+    - Image-basierte Installation ohne lokalen Build ergänzt.
+  - `.env.example`:
+    - Beispielkonfiguration für Image, Port, Zeitzone und PostgreSQL ergänzt.
+  - `.dockerignore`:
+    - Laufzeitdaten, Aufgaben-/Output-Dateien und lokale Artefakte vom Docker-Build ausgeschlossen.
+  - `README.md`:
+    - Installations- und Updateweg für das fertige Docker-Image dokumentiert.
+
+## v1.0.21
 - Anfrage: SBK-Rollen und Individuelle Rollen pro Mapping in der DB speichern, auch wenn sie noch keiner SOURCE-Rolle zugeordnet sind.
 - Antwort: Umgesetzt. Beide Rollenpools werden jetzt mapping-spezifisch persistiert und beim Laden wiederhergestellt.
 - Änderungen:

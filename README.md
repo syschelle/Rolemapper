@@ -26,6 +26,54 @@ docker compose down
 - Database data persists in Docker volume `rolemapper-db-data`.
 - Server mappings use the PostgreSQL container as single source of truth.
 
+## Install from a Docker image
+
+The GitHub workflow publishes the app image to GitHub Container Registry:
+
+```text
+ghcr.io/syschelle/rolemapper
+```
+
+Create local runtime folders if they do not exist yet:
+
+```bash
+mkdir -p config output Aufgabe mapping_store
+```
+
+Copy the example environment and adjust secrets:
+
+```bash
+cp .env.example .env
+```
+
+Start the image-based setup:
+
+```bash
+docker compose -f docker-compose.image.yml up -d
+```
+
+Use a specific image tag when needed:
+
+```bash
+ROLEMAPPER_IMAGE=ghcr.io/syschelle/rolemapper:sha-<commit> docker compose -f docker-compose.image.yml up -d
+```
+
+Service URL in LAN:
+- `http://<HOST-IP>:5080`
+
+### Image build workflow
+
+GitHub Actions builds and publishes the Docker image on:
+- pushes to `main` or `master`
+- tags matching `v*`
+- manual workflow runs
+
+Published tags include:
+- branch name, for example `main`
+- commit tag, for example `sha-424f4d2...`
+- Git tags, for example `v1.0.0`
+- `latest` on the default branch
+
 ## Run locally without Docker
 
 ```bash

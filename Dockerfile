@@ -13,4 +13,7 @@ COPY . .
 
 EXPOSE 5080
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=5 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5080/healthz', timeout=5).read()"
+
 CMD ["python", "app/app.py"]
