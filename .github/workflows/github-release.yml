@@ -33,14 +33,29 @@ jobs:
 
       - name: Create or update release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release edit "${GITHUB_REF_NAME}" \
-              --title "Rolemapper ${GITHUB_REF_NAME}" \
-              --notes-file release-notes.md
+          python - <<'PY' > release-payload.json
+          import json
+          import os
+
+          payload = {
+              "tag_name": os.environ["GITHUB_REF_NAME"],
+              "target_commitish": os.environ["GITHUB_SHA"],
+              "name": f"Rolemapper {os.environ['GITHUB_REF_NAME']}",
+              "body": open("release-notes.md", encoding="utf-8").read(),
+              "draft": False,
+              "prerelease": False,
+          }
+          print(json.dumps(payload))
+          PY
+
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases"
+          headers=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
+          get_code=$(curl -sS -o release-response.json -w '%{http_code}' "${headers[@]}" "${api}/tags/${GITHUB_REF_NAME}")
+          if [ "${get_code}" = "200" ]; then
+            release_id=$(python -c 'import json; print(json.load(open("release-response.json"))["id"])')
+            curl -sS -f -X PATCH "${headers[@]}" "${api}/${release_id}" --data @release-payload.json
           else
-            gh release create "${GITHUB_REF_NAME}" \
-              --title "Rolemapper ${GITHUB_REF_NAME}" \
-              --notes-file release-notes.md
+            curl -sS -f -X POST "${headers[@]}" "${api}" --data @release-payload.json
           fi
