@@ -83,7 +83,7 @@ DEFAULT_PERSONAS = [
 
 app = Flask(__name__)
 app.secret_key = "rolemapper-local-dev"
-APP_VERSION = "1.0.24"
+APP_VERSION = "1.0.25"
 SUPPORTED_LANGS = ["de", "en", "it", "fr", "pt", "es"]
 
 
@@ -2795,6 +2795,7 @@ This bundle contains:
 - `docker-compose.example.yaml`
 - `docker-compose.image.yml` (when available)
 - `.env.example` (when available)
+- `reset-admin-password.sh` (when available)
 - `Dockerfile`
 - `DEPLOY_EN.md`
 - `config/auth_settings.json` (with initial admin password hash)
@@ -2896,7 +2897,7 @@ Bundle generated from Rolemapper {APP_VERSION}.
         zf.writestr("DEPLOY_EN.md", guide)
         zf.writestr("config/auth_settings.json", json.dumps(initial_auth_settings, indent=2, ensure_ascii=False))
         zf.writestr("app/CHANGELOG_BUNDLED.md", bundled_changelog)
-        for extra_name in ["docker-compose.image.yml", ".env.example"]:
+        for extra_name in ["docker-compose.image.yml", ".env.example", "reset-admin-password.sh"]:
             extra_path = PROJECT_DIR / extra_name
             if extra_path.exists() and extra_path.is_file():
                 zf.write(extra_path, arcname=extra_name)

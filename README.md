@@ -14,6 +14,11 @@ Stop:
 docker compose down
 ```
 
+Reset admin password from the console:
+```bash
+./reset-admin-password.sh
+```
+
 ### Notes
 - Compose starts two containers:
   - `rolemapper` (app)

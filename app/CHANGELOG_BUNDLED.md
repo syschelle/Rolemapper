@@ -66,7 +66,20 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.24 (current)
+## v1.0.25 (current)
+- Anfrage: Admin-Passwort soll per Konsole/Putty neu gesetzt werden können.
+- Antwort: Umgesetzt. Es gibt jetzt ein interaktives Shellskript, das den Admin-Hash im laufenden Docker-Compose-Container aktualisiert.
+- Änderungen:
+  - `app.py`:
+    - `APP_VERSION` auf `1.0.25` erhöht.
+    - Deployment-Bundle nimmt `reset-admin-password.sh` mit auf, wenn vorhanden.
+  - `reset-admin-password.sh`:
+    - Neues Skript zum verdeckten Abfragen und Bestätigen des Admin-Passworts.
+    - Schreibt `config/auth_settings.json` im `rolemapper`-Container mit Werkzeug-Hash neu.
+  - `README.md`:
+    - Konsolenbefehl zum Zurücksetzen des Admin-Passworts ergänzt.
+
+## v1.0.24
 - Anfrage: Beim Laden eines Mappings sollen SBK-Rollen nicht als normale Berechtigungs-/individuelle Rollen erscheinen und ihre farbliche Kennzeichnung behalten.
 - Antwort: Behoben. Serverseitig gespeicherte SBK-Rollen werden beim Mapping-Laden wieder korrekt gelb klassifiziert; alte browserseitige SBK-Merker überschreiben Server-Mappings nicht mehr.
 - Änderungen:
