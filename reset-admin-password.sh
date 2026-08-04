@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 # Reset the Rolemapper admin password inside the running Docker Compose app.
 # Run this script from the Rolemapper deployment directory.
@@ -8,42 +8,59 @@ SERVICE_NAME="${ROLEMAPPER_SERVICE:-rolemapper}"
 CONFIG_PATH="${ROLEMAPPER_AUTH_CONFIG:-/app/config/auth_settings.json}"
 
 if docker compose version >/dev/null 2>&1; then
-  COMPOSE=(docker compose)
+  USE_DOCKER_COMPOSE=0
 elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE=(docker-compose)
+  USE_DOCKER_COMPOSE=1
 else
   echo "ERROR: Neither 'docker compose' nor 'docker-compose' was found." >&2
   exit 1
 fi
 
-if [[ ! -f docker-compose.yml && ! -f compose.yml && ! -f docker-compose.yaml && ! -f compose.yaml ]]; then
+compose() {
+  if [ "$USE_DOCKER_COMPOSE" -eq 0 ]; then
+    docker compose "$@"
+  else
+    docker-compose "$@"
+  fi
+}
+
+if [ ! -f docker-compose.yml ] && [ ! -f compose.yml ] && [ ! -f docker-compose.yaml ] && [ ! -f compose.yaml ]; then
   echo "ERROR: No Docker Compose file found in the current directory." >&2
   echo "Please run this script from the Rolemapper deployment directory." >&2
   exit 1
 fi
 
-if ! "${COMPOSE[@]}" ps "$SERVICE_NAME" >/dev/null 2>&1; then
+if ! compose ps "$SERVICE_NAME" >/dev/null 2>&1; then
   echo "ERROR: Compose service '$SERVICE_NAME' was not found." >&2
   echo "If your service has another name, run: ROLEMAPPER_SERVICE=<name> $0" >&2
   exit 1
 fi
 
-read -rsp "New admin password: " PASSWORD_ONE
-echo
-read -rsp "Repeat new admin password: " PASSWORD_TWO
-echo
+printf "New admin password: "
+stty -echo
+trap 'stty echo' EXIT INT TERM
+IFS= read -r PASSWORD_ONE
+stty echo
+printf "\n"
 
-if [[ -z "$PASSWORD_ONE" ]]; then
+printf "Repeat new admin password: "
+stty -echo
+IFS= read -r PASSWORD_TWO
+stty echo
+trap - EXIT INT TERM
+printf "\n"
+
+if [ -z "$PASSWORD_ONE" ]; then
   echo "ERROR: Password must not be empty." >&2
   exit 1
 fi
 
-if [[ "$PASSWORD_ONE" != "$PASSWORD_TWO" ]]; then
+if [ "$PASSWORD_ONE" != "$PASSWORD_TWO" ]; then
   echo "ERROR: Passwords do not match." >&2
   exit 1
 fi
 
-printf '%s' "$PASSWORD_ONE" | "${COMPOSE[@]}" exec -T "$SERVICE_NAME" python -c '
+printf '%s' "$PASSWORD_ONE" | compose exec -T "$SERVICE_NAME" python -c '
 import json
 import sys
 from pathlib import Path

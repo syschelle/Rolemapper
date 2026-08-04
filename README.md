@@ -17,6 +17,8 @@ docker compose down
 Reset admin password from the console:
 ```bash
 ./reset-admin-password.sh
+# or, when the script is started through /bin/sh:
+sh reset-admin-password.sh
 ```
 
 ### Notes

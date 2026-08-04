@@ -66,7 +66,20 @@ Dieses Dokument hält die Änderungen pro Version fest.
   - In-App Changelog-Ansicht mit farblicher Semantik
   - PDF-Export „on the fly“ aus aktuellem Changelog
 
-## v1.0.25 (current)
+## v1.0.26 (current)
+- Anfrage: `reset-admin-password.sh` wirft unter Putty/`sh` den Fehler `set: Illegal option -o pipefail`.
+- Antwort: Behoben. Das Skript ist jetzt bewusst POSIX-`sh`-kompatibel und kann auch mit `sh reset-admin-password.sh` ausgeführt werden.
+- Änderungen:
+  - `app.py`:
+    - `APP_VERSION` auf `1.0.26` erhöht.
+  - `reset-admin-password.sh`:
+    - Shebang auf `/bin/sh` geändert.
+    - Bash-spezifische Optionen/Arrays entfernt.
+    - Passwortabfrage über `stty -echo` statt `read -s` umgesetzt.
+  - `README.md`:
+    - Hinweis zur Ausführung mit `sh reset-admin-password.sh` ergänzt.
+
+## v1.0.25
 - Anfrage: Admin-Passwort soll per Konsole/Putty neu gesetzt werden können.
 - Antwort: Umgesetzt. Es gibt jetzt ein interaktives Shellskript, das den Admin-Hash im laufenden Docker-Compose-Container aktualisiert.
 - Änderungen:
